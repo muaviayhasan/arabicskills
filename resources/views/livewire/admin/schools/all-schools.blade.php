@@ -115,6 +115,11 @@
                                                 <a href="{{ route('admin.grades-and-sections', ['school_id' => $school->id]) }}"
                                                     class="dropdown-item text-center">Classes</a>
                                                 @endif
+                                                @if (getPermissions('schools', 'delete'))
+                                                <button type="button"
+                                                    class="dropdown-item text-center text-danger"
+                                                    wire:click="deleteSchool({{ $school->id }})">Delete</button>
+                                                @endif
 
                                             </div>
                                         </div>
