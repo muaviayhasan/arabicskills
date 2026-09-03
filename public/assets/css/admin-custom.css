@@ -1,0 +1,131 @@
+/* Admin custom styles — scoped to main content area */
+
+.main-content .table-responsive > .table th,
+.main-content .table-responsive > .table td {
+    border: 1px solid #e9ecef;
+}
+
+.main-content .table-responsive > .table thead th {
+    border-bottom-width: 2px;
+}
+
+/* Exam card grid */
+.admin-exam-card {
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.admin-exam-card:hover {
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08);
+}
+
+.admin-exam-card .exam-card-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 1.25rem 0.75rem;
+}
+
+.admin-exam-card .exam-card-body {
+    padding: 0.75rem 1.25rem;
+}
+
+.admin-exam-card .exam-card-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 0.75rem 1.25rem;
+    background-color: #f8f9fa;
+}
+
+.admin-exam-card .activity-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.admin-exam-card .activity-badges a {
+    text-decoration: none;
+}
+
+/* Skill cards on exam details page */
+.admin-skill-card {
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+}
+
+.admin-skill-card .skill-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+}
+
+.admin-skill-card .skill-card-body {
+    padding: 1rem 1.25rem;
+}
+
+.admin-skill-card .skill-card-footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.admin-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+}
+
+@media (max-width: 767.98px) {
+    .admin-meta-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-meta-grid .meta-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1.25rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.admin-meta-grid .meta-item:nth-child(odd) {
+    border-right: 1px solid #e9ecef;
+}
+
+@media (max-width: 767.98px) {
+    .admin-meta-grid .meta-item:nth-child(odd) {
+        border-right: none;
+    }
+}
+
+.admin-meta-grid .meta-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0;
+}
+
+.admin-meta-grid .meta-value {
+    margin-bottom: 0;
+    color: #212529;
+}
+
+.admin-overview-card {
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+}
+
+.admin-overview-card .overview-title {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+    font-weight: 600;
+    margin-bottom: 0;
+}
