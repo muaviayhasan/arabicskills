@@ -11,6 +11,9 @@
                                 placeholder="Search by Name, Email, or ID...">
                         </div>
                         <div class="col-12 col-md-6 col-lg-3">
+                            {{-- Spacer matching the Search label, so the buttons line up
+                                 with the input rather than sitting below it. --}}
+                            <label class="form-label d-none d-md-block" aria-hidden="true">&nbsp;</label>
                             <div class="d-flex gap-2">
                                 <button type="button" wire:click="manageSearch" class="btn btn-primary flex-fill" wire:loading.attr="disabled">
                                     <span wire:loading.remove wire:target="manageSearch">
