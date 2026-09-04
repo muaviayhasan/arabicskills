@@ -56,9 +56,13 @@
                                     <th>
                                         Logo
                                     </th>
-                                    <th style="width: 210px;">Name</th>
-                                    <th>Email</th>
-                                    <th>Students</th>
+                                    <x-admin.sortable-header field="name" label="Name"
+                                        :current="$sortField" :direction="$sortDirection"
+                                        style="width: 210px;" />
+                                    <x-admin.sortable-header field="email" label="Email"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="students" label="Students"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Import</th>
                                     <th>Action</th>
                                 </tr>
