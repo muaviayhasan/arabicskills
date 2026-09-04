@@ -43,7 +43,7 @@
 
     <x-admin.list-toolbar>
         <a href="{{ route('admin.add-school') }}" class="btn btn-primary">
-            <i class='bx bx-plus-circle'></i> Add
+            <i class='bx bx-plus-circle align-middle'></i> Add
         </a>
     </x-admin.list-toolbar>
 
