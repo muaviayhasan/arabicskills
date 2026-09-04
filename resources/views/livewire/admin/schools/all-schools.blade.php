@@ -16,20 +16,20 @@
                             <label class="form-label d-none d-md-block" aria-hidden="true">&nbsp;</label>
                             <div class="d-flex gap-2">
                                 <button type="button" wire:click="manageSearch" class="btn btn-primary flex-fill" wire:loading.attr="disabled">
-                                    <span class="d-inline-flex align-items-center justify-content-center gap-1" wire:loading.remove wire:target="manageSearch">
-                                        <i class="bx bx-search-alt"></i><span>Search</span>
+                                    <span wire:loading.remove wire:target="manageSearch">
+                                        <i class="bx bx-search-alt align-middle"></i> Search
                                     </span>
-                                    <span class="d-inline-flex align-items-center justify-content-center gap-1" wire:loading.inline-flex wire:target="manageSearch">
-                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span wire:loading wire:target="manageSearch">
+                                        <span class="spinner-border spinner-border-sm align-middle" role="status" aria-hidden="true"></span>
                                         Searching...
                                     </span>
                                 </button>
                                 <button type="button" wire:click="resetFilters" class="btn btn-secondary flex-fill" wire:loading.attr="disabled">
-                                    <span class="d-inline-flex align-items-center justify-content-center gap-1" wire:loading.remove wire:target="resetFilters">
-                                        <i class="bx bx-reset"></i><span>Reset</span>
+                                    <span wire:loading.remove wire:target="resetFilters">
+                                        <i class="bx bx-reset align-middle"></i> Reset
                                     </span>
-                                    <span class="d-inline-flex align-items-center justify-content-center gap-1" wire:loading.inline-flex wire:target="resetFilters">
-                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span wire:loading wire:target="resetFilters">
+                                        <span class="spinner-border spinner-border-sm align-middle" role="status" aria-hidden="true"></span>
                                         Resetting...
                                     </span>
                                 </button>
