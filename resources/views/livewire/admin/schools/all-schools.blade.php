@@ -103,7 +103,7 @@
                                     <td>
                                         <div class="dropdown">
                                             <button type="button"
-                                                class="btn btn-sm btn-danger border-0 shadow-none"
+                                                class="btn btn-sm btn-danger border-0 shadow-none p-2"
                                                 data-bs-toggle="dropdown"
                                                 aria-label="Actions for {{ $school->name }}">
                                                 <i class='bx bx-dots-vertical-rounded fs-5 align-middle'></i>
