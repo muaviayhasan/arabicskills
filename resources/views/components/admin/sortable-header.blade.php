@@ -21,7 +21,7 @@
     @else
         {{-- Unsorted: both carets, so the column reads as sortable. --}}
         <span class="d-inline-flex flex-column align-middle text-muted opacity-50"
-            style="font-size: .7rem; line-height: .6;">
+            style="line-height: .45;">
             <i class="bx bx-caret-up"></i>
             <i class="bx bx-caret-down"></i>
         </span>
