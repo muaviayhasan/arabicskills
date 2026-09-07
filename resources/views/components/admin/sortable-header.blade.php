@@ -16,14 +16,14 @@
     title="Sort by {{ strtolower($label) }}">
     {{ $label }}
     @if ($active)
-        {{-- Sorted: a single caret showing the active direction. --}}
-        <i class="bx bx-caret-{{ $direction === 'asc' ? 'up' : 'down' }} align-middle"></i>
+        {{-- Sorted: a single chevron showing the active direction. --}}
+        <i class="bx bx-chevron-{{ $direction === 'asc' ? 'up' : 'down' }} align-middle"></i>
     @else
-        {{-- Unsorted: both carets, so the column reads as sortable. --}}
+        {{-- Unsorted: both chevrons, so the column reads as sortable. --}}
         <span class="d-inline-flex flex-column align-middle text-muted opacity-50"
-            style="line-height: .45;">
-            <i class="bx bx-caret-up"></i>
-            <i class="bx bx-caret-down"></i>
+            style="line-height: .38;">
+            <i class="bx bx-chevron-up"></i>
+            <i class="bx bx-chevron-down"></i>
         </span>
     @endif
 </th>
