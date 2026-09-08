@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Admins;
 
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\Admin;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -9,6 +10,7 @@ use Livewire\WithPagination;
 class AllAdmins extends Component
 {
     use WithPagination;
+    use WithTableSorting;
     protected $paginationTheme = 'bootstrap';
     public $searchWord;
     public $searchColumn;
@@ -54,6 +56,30 @@ class AllAdmins extends Component
         );
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'name' => 'admins.first_name',
+            'email' => 'admins.email',
+            'school' => 'schools.name',
+            'role' => 'admin_roles.name',
+        ];
+    }
+
+    protected function applySortJoins($query)
+    {
+        $query->select('admins.*');
+
+        return match ($this->sortField) {
+            'school' => $query->leftJoin('schools', 'schools.id', '=', 'admins.school_id'),
+            'role' => $query->leftJoin('admin_roles', 'admin_roles.id', '=', 'admins.role_id'),
+            default => $query,
+        };
+    }
+
     public function render()
     {
         $admins = Admin::when($this->searchColumn && $this->searchColumn != 'name', function ($query) {
@@ -62,8 +88,9 @@ class AllAdmins extends Component
             ->when($this->searchColumn && $this->searchColumn == 'name', function ($query) {
                 $query->where('first_name', 'LIKE', "%{$this->searchWord}%")->orWhere('last_name', 'LIKE', "%{$this->searchWord}%");
             })
-            ->with('AdminRole')
-            ->paginate(6);
+            ->with('AdminRole');
+
+        $admins = $this->applySorting($admins, 'admins.first_name', 'asc')->paginate(6);
 
         return view('livewire.admin.admins.all-admins', ['admins' => $admins])->layout('layouts.base')->layoutData([
             'title' => 'Admins',

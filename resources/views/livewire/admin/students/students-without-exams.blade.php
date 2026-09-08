@@ -59,11 +59,16 @@
                                 <thead>
                                     <tr class="fw-semibold text-center">
                                         <th>#</th>
-                                        <th>Name</th>
-                                        <th>Reg/Username</th>
-                                        <th>Grade</th>
-                                        <th>Level</th>
-                                        <th>Section</th>
+                                        <x-admin.sortable-header field="name" label="Name"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                        <x-admin.sortable-header field="registration" label="Reg/Username"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                        <x-admin.sortable-header field="grade" label="Grade"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                        <x-admin.sortable-header field="level" label="Level"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                        <x-admin.sortable-header field="section" label="Section"
+                                            :current="$sortField" :direction="$sortDirection" />
                                         <th>Action</th>
                                     </tr>
                                 </thead>

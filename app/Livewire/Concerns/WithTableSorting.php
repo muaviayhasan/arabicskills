@@ -45,6 +45,18 @@ trait WithTableSorting
     }
 
     /**
+     * Joins needed only when the active sort targets another table.
+     *
+     * Override where a sortable column does not live on the base table. It is
+     * called only when a sort is actually active, so an unsorted list pays
+     * nothing for it.
+     */
+    protected function applySortJoins(Builder $query): Builder
+    {
+        return $query;
+    }
+
+    /**
      * Apply the active sort, falling back to the list's natural order.
      */
     protected function applySorting(Builder $query, string $fallback, string $fallbackDirection = 'desc'): Builder
@@ -55,6 +67,7 @@ trait WithTableSorting
             return $query->orderBy($fallback, $fallbackDirection);
         }
 
-        return $query->orderBy($column, $this->sortDirection === 'asc' ? 'asc' : 'desc');
+        return $this->applySortJoins($query)
+            ->orderBy($column, $this->sortDirection === 'asc' ? 'asc' : 'desc');
     }
 }

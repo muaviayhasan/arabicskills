@@ -27,10 +27,15 @@
                                     <th style="width: 90px;">
                                         Image
                                     </th>
-                                    <th style="width: 210px;">Name</th>
-                                    <th>Email</th>
-                                    <th>School</th>
-                                    <th>Role</th>
+                                    <x-admin.sortable-header field="name" label="Name"
+                                        :current="$sortField" :direction="$sortDirection"
+                                        style="width: 210px;" />
+                                    <x-admin.sortable-header field="email" label="Email"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="school" label="School"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="role" label="Role"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Action</th>
                                 </tr>
                             </thead>

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Students;
 
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\Exam;
 use App\Models\School;
 use App\Models\Student;
@@ -12,6 +13,7 @@ use Livewire\WithPagination;
 class StudentsWithoutExams extends Component
 {
     use WithPagination;
+    use WithTableSorting;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -41,6 +43,32 @@ class StudentsWithoutExams extends Component
         $this->resetPage();
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'name' => 'students.name',
+            'registration' => 'students.registration',
+            'grade' => 'grades.number',
+            'level' => 'levels.number',
+            'section' => 'sections.name',
+        ];
+    }
+
+    protected function applySortJoins($query)
+    {
+        $query->select('students.*');
+
+        return match ($this->sortField) {
+            'grade' => $query->leftJoin('grades', 'grades.id', '=', 'students.grade_id'),
+            'level' => $query->leftJoin('levels', 'levels.id', '=', 'students.level_id'),
+            'section' => $query->leftJoin('sections', 'sections.id', '=', 'students.section_id'),
+            default => $query,
+        };
+    }
+
     public function render()
     {
         $students = collect();
@@ -57,11 +85,11 @@ class StudentsWithoutExams extends Component
                 ->pluck('student_id')
                 ->unique();
 
-            $students = Student::where('school_id', $this->school_id)
-                ->whereNotIn('id', $studentsWithExams)
-                ->with(['Grade', 'Section', 'School', 'assignedLevel'])
-                ->orderBy('name')
-                ->paginate(30);
+            $query = Student::where('students.school_id', $this->school_id)
+                ->whereNotIn('students.id', $studentsWithExams)
+                ->with(['Grade', 'Section', 'School', 'assignedLevel']);
+
+            $students = $this->applySorting($query, 'students.name', 'asc')->paginate(30);
         }
 
         return view('livewire.admin.students.students-without-exams', [
