@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\ExamCheck;
 
 use App\Exports\ResultExports;
 use App\Livewire\Concerns\RestrictsToAdminSchool;
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\Level;
 use App\Models\School;
 use App\Models\StudentExam;
@@ -16,6 +17,7 @@ class AllResults extends Component
 {
     use RestrictsToAdminSchool;
     use WithPagination;
+    use WithTableSorting;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -96,6 +98,31 @@ class AllResults extends Component
         );
     }
 
+    /**
+     * The five skill columns render results.*_marks, which are PHP-serialized
+     * arrays rather than scalar columns, so they cannot be ordered in SQL.
+     *
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'term' => 'exams.term',
+            'student' => 'students.name',
+        ];
+    }
+
+    protected function applySortJoins($query)
+    {
+        $query->select('student_exams.*');
+
+        return match ($this->sortField) {
+            'term' => $query->leftJoin('exams', 'exams.id', '=', 'student_exams.exam_id'),
+            'student' => $query->leftJoin('students', 'students.id', '=', 'student_exams.student_id'),
+            default => $query,
+        };
+    }
+
     public function render()
     {
         $adminSchoolId = $this->currentAdminSchoolId();
@@ -158,7 +185,7 @@ class AllResults extends Component
                     ->select('id', 'name', 'registration', 'section_id', 'deleted_at');
             }])
             ->with('Result')
-            ->orderByDESC('created_at')
+            ->tap(fn ($query) => $this->applySorting($query, 'student_exams.created_at', 'desc'))
             ->paginate(20);
 
         return view('livewire.admin.exam-check.all-results', [

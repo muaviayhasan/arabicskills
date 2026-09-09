@@ -112,10 +112,14 @@
                                     <th style="width: 90px;">
                                         Image
                                     </th>
-                                    <th>Type</th>
-                                    <th>Grade</th>
-                                    <th>Level</th>
-                                    <th>Assessment</th>
+                                    <x-admin.sortable-header field="type" label="Type"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="grade" label="Grade"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="level" label="Level"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="assessment" label="Assessment"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Action</th>
                                 </tr>
                             </thead>

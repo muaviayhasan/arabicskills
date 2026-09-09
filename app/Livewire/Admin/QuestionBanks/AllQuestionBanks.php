@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\QuestionBanks;
 
 use App\Livewire\Concerns\RestrictsToAdminSchool;
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\Activity;
 use App\Models\Grade;
 use App\Models\Level;
@@ -17,6 +18,7 @@ class AllQuestionBanks extends Component
 {
     use RestrictsToAdminSchool;
     use WithPagination;
+    use WithTableSorting;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -396,6 +398,31 @@ class AllQuestionBanks extends Component
         $this->dispatch('duplicateTermComplete', copied: $copied, skipped: $skipped, overwritten: $overwritten, questionsCopied: $questionsCopied);
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'type' => 'activities.type',
+            // grades/levels sort on `number` so Year 2 precedes Year 10.
+            'grade' => 'grades.number',
+            'level' => 'levels.number',
+            'assessment' => 'activities.title',
+        ];
+    }
+
+    protected function applySortJoins($query)
+    {
+        $query->select('activities.*');
+
+        return match ($this->sortField) {
+            'grade' => $query->leftJoin('grades', 'grades.id', '=', 'activities.grade_id'),
+            'level' => $query->leftJoin('levels', 'levels.id', '=', 'activities.level_id'),
+            default => $query,
+        };
+    }
+
     public function render()
     {
         $activities = Activity::query()
@@ -421,7 +448,7 @@ class AllQuestionBanks extends Component
                         ->orWhere('activity', 'LIKE', "%{$this->search}%");
                 });
             })
-            ->orderByDesc('created_at')
+            ->tap(fn ($query) => $this->applySorting($query, 'activities.created_at', 'desc'))
             ->paginate(10);
 
         $levels = Level::query()

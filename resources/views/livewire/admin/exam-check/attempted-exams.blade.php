@@ -133,11 +133,15 @@
                             <thead>
                                 <tr class="fw-semibold text-center">
                                     <th>#</th>
-                                    <th>School</th>
+                                    <x-admin.sortable-header field="school" label="School"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Level</th>
-                                    <th>Term</th>
-                                    <th>Student</th>
-                                    <th>Date</th>
+                                    <x-admin.sortable-header field="term" label="Term"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="student" label="Student"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="date" label="Date"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Action</th>
 
                                 </tr>

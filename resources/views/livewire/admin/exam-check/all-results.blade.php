@@ -37,8 +37,10 @@
                             style="margin-bottom: 70px; !important">
                             <thead>
                                 <tr class="fw-semibold text-center">
-                                    <th>Term</th>
-                                    <th>Student</th>
+                                    <x-admin.sortable-header field="term" label="Term"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="student" label="Student"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Reading Exam</th>
                                     <th>Listening Exam</th>
                                     <th>writing Exam</th>
