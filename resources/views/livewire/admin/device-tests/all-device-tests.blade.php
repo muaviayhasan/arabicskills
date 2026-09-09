@@ -11,11 +11,15 @@
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>Student</th>
-                            <th>Registration ID</th>
-                            <th>Overall Status</th>
+                            <x-admin.sortable-header field="student" label="Student"
+                                :current="$sortField" :direction="$sortDirection" />
+                            <x-admin.sortable-header field="registration" label="Registration ID"
+                                :current="$sortField" :direction="$sortDirection" />
+                            <x-admin.sortable-header field="status" label="Overall Status"
+                                :current="$sortField" :direction="$sortDirection" />
                             <th>Device OS</th>
-                            <th>Tested At</th>
+                            <x-admin.sortable-header field="tested_at" label="Tested At"
+                                :current="$sortField" :direction="$sortDirection" />
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>

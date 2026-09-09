@@ -16,7 +16,8 @@
                         <table class="table mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Role</th>
+                                    <x-admin.sortable-header field="role" label="Role"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Permission</th>
                                     <th>View</th>
                                     <th>Add</th>

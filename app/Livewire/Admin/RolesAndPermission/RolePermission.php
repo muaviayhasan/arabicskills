@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\RolesAndPermission;
 
 use Exception;
 use Livewire\Component;
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\AdminRole;
 use Illuminate\Support\Str;
 use Livewire\WithPagination;
@@ -14,6 +15,7 @@ use App\Models\AdminRolePermission;
 class RolePermission extends Component
 {
     use WithPagination;
+    use WithTableSorting;
     protected $paginationTheme = 'bootstrap';
     public $new_role;
     protected $listeners = [
@@ -106,9 +108,20 @@ class RolePermission extends Component
         }
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'role' => 'admin_roles.name',
+        ];
+    }
+
     public function render()
     {
-        $roles = AdminRole::with('AdminRolePermission.AdminPermission')->paginate(3);
+        $roles = AdminRole::with('AdminRolePermission.AdminPermission');
+        $roles = $this->applySorting($roles, 'admin_roles.id', 'asc')->paginate(3);
         return view('livewire.admin.roles-and-permission.role-permission', ['roles' => $roles])->layout('layouts.base')->layoutData([
             'title' => 'Role and Permission',
             'pageTitle' => 'Admin Roles and Permission Management',
