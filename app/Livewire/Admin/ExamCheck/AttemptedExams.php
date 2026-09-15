@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\ExamCheck;
 
 use App\Exports\AttemptedExamsExport;
 use App\Livewire\Concerns\RestrictsToAdminSchool;
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\Exam;
 use App\Models\Grade;
 use App\Models\Level;
@@ -18,6 +19,7 @@ class AttemptedExams extends Component
 {
     use RestrictsToAdminSchool;
     use WithPagination;
+    use WithTableSorting;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -221,6 +223,37 @@ class AttemptedExams extends Component
         return Excel::download(new AttemptedExamsExport($filters), $fileName);
     }
 
+    /**
+     * Level is deliberately absent: exams.level_ids is a JSON array, so there
+     * is no single value to order by.
+     *
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'school' => 'schools.name',
+            'term' => 'exams.term',
+            'student' => 'students.name',
+            'date' => 'student_exams.created_at',
+        ];
+    }
+
+    protected function applySortJoins($query)
+    {
+        // No select() here: withCount('TakeExam') has already selected
+        // student_exams.* alongside its aggregate, and re-selecting would
+        // drop the count that marks a student absent.
+        return match ($this->sortField) {
+            'school' => $query
+                ->leftJoin('exams', 'exams.id', '=', 'student_exams.exam_id')
+                ->leftJoin('schools', 'schools.id', '=', 'exams.school_id'),
+            'term' => $query->leftJoin('exams', 'exams.id', '=', 'student_exams.exam_id'),
+            'student' => $query->leftJoin('students', 'students.id', '=', 'student_exams.student_id'),
+            default => $query,
+        };
+    }
+
     public function render()
     {
         $adminSchoolId = $this->currentAdminSchoolId();
@@ -311,7 +344,7 @@ class AttemptedExams extends Component
             // Used to mark "Absent" in the list when no answers exist.
             ->withCount('TakeExam')
 
-            ->orderByDesc('id')
+            ->tap(fn ($query) => $this->applySorting($query, 'student_exams.id', 'desc'))
             ->paginate(20);
 
         // 🔽 Filter dropdown data (same as Exam listing)

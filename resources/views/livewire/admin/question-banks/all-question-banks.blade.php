@@ -112,10 +112,14 @@
                                     <th style="width: 90px;">
                                         Image
                                     </th>
-                                    <th>Type</th>
-                                    <th>Grade</th>
-                                    <th>Level</th>
-                                    <th>Assessment</th>
+                                    <x-admin.sortable-header field="type" label="Type"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="grade" label="Grade"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="level" label="Level"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="assessment" label="Assessment"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -157,16 +161,11 @@
 
                                         <td>
                                             <div class="dropdown">
-                                                <button type="button" class="btn btn-danger light sharp"
-                                                    data-bs-toggle="dropdown">
-                                                    <svg width="20px" height="20px" viewBox="0 0 24 24" version="1.1">
-                                                        <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                                            <rect x="0" y="0" width="24" height="24" />
-                                                            <circle fill="#000000" cx="5" cy="12" r="2" />
-                                                            <circle fill="#000000" cx="12" cy="12" r="2" />
-                                                            <circle fill="#000000" cx="19" cy="12" r="2" />
-                                                        </g>
-                                                    </svg>
+                                                <button type="button"
+                                                    class="btn btn-sm btn-danger border-0 shadow-none p-2"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-label="Actions for {{ $activity->title }}">
+                                                    <i class='bx bx-dots-vertical-rounded fs-5 align-middle'></i>
                                                 </button>
                                                 <div class="dropdown-menu">
                                                     @if (getPermissions('question_banks', 'edit'))

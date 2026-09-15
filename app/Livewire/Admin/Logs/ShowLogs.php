@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Logs;
 
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\IpLog;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -10,6 +11,7 @@ use Livewire\WithPagination;
 class ShowLogs extends Component
 {
     use WithPagination;
+    use WithTableSorting;
     protected $paginationTheme = 'bootstrap';
     public $searchWord;
     public $searchColumn;
@@ -24,6 +26,20 @@ class ShowLogs extends Component
         $this->searchColumn = $searchColumn;
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'type' => 'loggable_type',
+            'username' => 'username',
+            'location' => 'location',
+            'ip' => 'ip',
+            'created_at' => 'created_at',
+        ];
+    }
+
     #[Computed]
     public function logs()
     {
@@ -31,7 +47,7 @@ class ShowLogs extends Component
             $query->where('username', 'LIKE', "%{$this->searchWord}%");
         })
 
-            ->orderByDESC('created_at')
+            ->tap(fn ($query) => $this->applySorting($query, 'created_at', 'desc'))
             ->paginate(20);
     }
     public function render()

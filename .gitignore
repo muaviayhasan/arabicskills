@@ -17,6 +17,7 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/.claude
 /public/uploads
 *.zip
 # Local environment backups and database dumps (contain credentials / student PII)

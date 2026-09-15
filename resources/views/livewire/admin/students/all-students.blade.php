@@ -64,10 +64,10 @@
                                 <button type="button" wire:click="manageSearch" class="btn btn-primary"
                                     wire:loading.attr="disabled">
                                     <span wire:loading.remove wire:target="manageSearch">
-                                        <i class="bx bx-search-alt"></i> Search
+                                        <i class="bx bx-search-alt align-middle"></i> Search
                                     </span>
                                     <span wire:loading wire:target="manageSearch">
-                                        <span class="spinner-border spinner-border-sm" role="status"
+                                        <span class="spinner-border spinner-border-sm align-middle" role="status"
                                             aria-hidden="true"></span>
                                         Searching...
                                     </span>
@@ -75,10 +75,10 @@
                                 <button type="button" wire:click="resetFilters" class="btn btn-secondary"
                                     wire:loading.attr="disabled">
                                     <span wire:loading.remove wire:target="resetFilters">
-                                        <i class="bx bx-reset"></i> Reset
+                                        <i class="bx bx-reset align-middle"></i> Reset
                                     </span>
                                     <span wire:loading wire:target="resetFilters">
-                                        <span class="spinner-border spinner-border-sm" role="status"
+                                        <span class="spinner-border spinner-border-sm align-middle" role="status"
                                             aria-hidden="true"></span>
                                         Resetting...
                                     </span>
@@ -96,7 +96,7 @@
             <button type="button" class="btn btn-danger" wire:click.prevent="bulkArchiveStudents"
                 wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="bulkArchiveStudents,bulkArchiveStudentsConfirm">
-                    <i class='bx bx-archive'></i> Bulk Archive
+                    <i class='bx bx-archive align-middle'></i> Bulk Archive
                 </span>
                 <span wire:loading wire:target="bulkArchiveStudents,bulkArchiveStudentsConfirm">
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -107,7 +107,7 @@
                 <button type="button" class="btn btn-secondary" wire:click.prevent="bulkRestoreStudents"
                     wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="bulkRestoreStudents,bulkRestoreStudentsConfirm">
-                        <i class='bx bx-undo'></i> Bulk Restore
+                        <i class='bx bx-undo align-middle'></i> Bulk Restore
                     </span>
                     <span wire:loading wire:target="bulkRestoreStudents,bulkRestoreStudentsConfirm">
                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -117,11 +117,11 @@
             @endif
         @endif
         <button class="btn btn-success" type="button" wire:click.prevent="exportExcel">
-            <i class='bx bx-spreadsheet'></i> Export
+            <i class='bx bx-spreadsheet align-middle'></i> Export
         </button>
         <button type="button" class="btn btn-info" wire:click="downloadQrsZip" wire:loading.attr="disabled">
             <span wire:loading.remove wire:target="downloadQrsZip">
-                <i class='bx bx-download'></i> Download QRs
+                <i class='bx bx-download align-middle'></i> Download QRs
             </span>
             <span wire:loading wire:target="downloadQrsZip">
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -129,10 +129,10 @@
             </span>
         </button>
         <a href="{{ route('admin.import-students') }}" class="btn btn-secondary">
-            <i class='bx bx-spreadsheet'></i> Import
+            <i class='bx bx-spreadsheet align-middle'></i> Import
         </a>
         <a href="{{ route('admin.add-student') }}" class="btn btn-primary">
-            <i class='bx bx-plus-circle'></i> Add
+            <i class='bx bx-plus-circle align-middle'></i> Add
         </a>
     </x-admin.list-toolbar>
 
@@ -146,12 +146,18 @@
                             <thead>
                                 <tr class="fw-semibold text-center">
                                     <th>#</th>
-                                    <th>Name</th>
-                                    <th>Reg/Username</th>
-                                    <th>Grade</th>
-                                    <th>Level</th>
-                                    <th>Section</th>
-                                    <th>School</th>
+                                    <x-admin.sortable-header field="name" label="Name"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="registration" label="Reg/Username"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="grade" label="Grade"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="level" label="Level"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="section" label="Section"
+                                            :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="school" label="School"
+                                            :current="$sortField" :direction="$sortDirection" />
                                     <th>Password</th>
                                     <th>Action</th>
                                 </tr>
@@ -215,16 +221,11 @@
                                         </td>
                                         <td>
                                             <div class="dropdown">
-                                                <button type="button" class="btn btn-danger light sharp"
-                                                    data-bs-toggle="dropdown">
-                                                    <svg width="20px" height="20px" viewBox="0 0 24 24" version="1.1">
-                                                        <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                                            <rect x="0" y="0" width="24" height="24" />
-                                                            <circle fill="#000000" cx="5" cy="12" r="2" />
-                                                            <circle fill="#000000" cx="12" cy="12" r="2" />
-                                                            <circle fill="#000000" cx="19" cy="12" r="2" />
-                                                        </g>
-                                                    </svg>
+                                                <button type="button"
+                                                    class="btn btn-sm btn-danger border-0 shadow-none p-2"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-label="Actions for {{ $student->name }}">
+                                                    <i class='bx bx-dots-vertical-rounded fs-5 align-middle'></i>
                                                 </button>
                                                 <div class="dropdown-menu">
                                                     @if (getPermissions('students', 'edit'))

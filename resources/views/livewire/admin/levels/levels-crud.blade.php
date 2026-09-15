@@ -13,7 +13,7 @@
                             <div class="d-flex gap-2">
                                 <button type="button" wire:click="manageSearch" class="btn btn-primary flex-fill" wire:loading.attr="disabled">
                                     <span wire:loading.remove wire:target="manageSearch">
-                                        <i class="bx bx-search-alt"></i> Search
+                                        <i class="bx bx-search-alt align-middle"></i> Search
                                     </span>
                                     <span wire:loading wire:target="manageSearch">
                                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -22,7 +22,7 @@
                                 </button>
                                 <button type="button" wire:click="resetFilters" class="btn btn-secondary flex-fill" wire:loading.attr="disabled">
                                     <span wire:loading.remove wire:target="resetFilters">
-                                        <i class="bx bx-reset"></i> Reset
+                                        <i class="bx bx-reset align-middle"></i> Reset
                                     </span>
                                     <span wire:loading wire:target="resetFilters">
                                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -41,7 +41,7 @@
         @if (getPermissions('levels', 'add'))
             <button type="button" wire:click="openCreateModal" class="btn btn-primary waves-effect waves-light"
                 data-bs-toggle="modal" data-bs-target="#levelModal">
-                <i class='bx bx-plus-circle'></i> Add Level
+                <i class='bx bx-plus-circle align-middle'></i> Add Level
             </button>
         @endif
     </x-admin.list-toolbar>
@@ -54,9 +54,12 @@
                         <table class="table mb-0">
                             <thead class="table-light">
                                 <tr class="text-center align-middle">
-                                    <th>ID</th>
-                                    <th>Level Name</th>
-                                    <th>Last Updated By</th>
+                                    <x-admin.sortable-header field="id" label="ID"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="name" label="Level Name"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="admin" label="Last Updated By"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Edit</th>
                                     <th>Delete</th>
                                 </tr>
@@ -74,7 +77,7 @@
                                                 <button type="button" class="btn btn-success" data-bs-toggle="modal"
                                                     data-bs-target="#levelModal"
                                                     wire:click="openEditModal({{ $level->id }})">
-                                                    <i class='bx bxs-edit'></i> Edit
+                                                    <i class='bx bxs-edit align-middle'></i> Edit
                                                 </button>
                                             </td>
                                         @else
@@ -84,7 +87,7 @@
                                             <td>
                                                 <button type="button" class="btn btn-danger"
                                                     wire:click="deleteLevel({{ $level->id }})">
-                                                    <i class='bx bx-trash'></i> Delete
+                                                    <i class='bx bx-trash align-middle'></i> Delete
                                                 </button>
                                             </td>
                                         @else

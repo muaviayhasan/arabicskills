@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Schools;
 
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\Grade;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -10,6 +11,7 @@ use Livewire\WithPagination;
 class GradeYear extends Component
 {
     use WithPagination;
+    use WithTableSorting;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -143,6 +145,29 @@ class GradeYear extends Component
         );
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'id' => 'grades.id',
+            // Names are generated as "Year N", so ordering on `number` keeps
+            // Year 2 before Year 10 rather than sorting them as text.
+            'name' => 'grades.number',
+            'admin' => 'admins.first_name',
+        ];
+    }
+
+    protected function applySortJoins($query)
+    {
+        $query->select('grades.*');
+
+        return $this->sortField === 'admin'
+            ? $query->leftJoin('admins', 'admins.id', '=', 'grades.admin_id')
+            : $query;
+    }
+
     public function render()
     {
         $classes = Grade::query()
@@ -153,9 +178,9 @@ class GradeYear extends Component
                     $q->where('name', 'LIKE', "%{$search}%")
                         ->orWhere('number', 'LIKE', "%{$search}%");
                 });
-            })
-            ->orderBy('number')
-            ->paginate(20);
+            });
+
+        $classes = $this->applySorting($classes, 'grades.number', 'asc')->paginate(20);
 
         return view('livewire.admin.schools.grade-year', [
             'classes' => $classes,

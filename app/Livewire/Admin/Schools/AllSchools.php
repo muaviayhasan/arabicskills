@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Schools;
 
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\Admin;
 use App\Models\DeviceTest;
 use App\Models\Exam;
@@ -19,6 +20,8 @@ use Livewire\WithPagination;
 class AllSchools extends Component
 {
     use WithPagination;
+    use WithTableSorting;
+
     protected $paginationTheme = 'bootstrap';
     public $searchWord;
 
@@ -190,6 +193,18 @@ class AllSchools extends Component
         }
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'name' => 'name',
+            'email' => 'email',
+            'students' => 'student_count',
+        ];
+    }
+
     public function render()
     {
         $schools = School::when($this->searchWord, function ($query) {
@@ -200,7 +215,7 @@ class AllSchools extends Component
             });
         })
             ->withCount('Student')
-            ->orderByDesc('created_at')
+            ->tap(fn ($query) => $this->applySorting($query, 'created_at', 'desc'))
             ->paginate(6);
 
         return view('livewire.admin.schools.all-schools', ['schools' => $schools])->layout('layouts.base')->layoutData([

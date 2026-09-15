@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Levels;
 
+use App\Livewire\Concerns\WithTableSorting;
 use App\Models\Level;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -10,6 +11,7 @@ use Livewire\WithPagination;
 class LevelsCrud extends Component
 {
     use WithPagination;
+    use WithTableSorting;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -143,6 +145,29 @@ class LevelsCrud extends Component
         );
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'id' => 'levels.id',
+            // Names are always "Level N", so ordering on `number` keeps
+            // Level 2 before Level 10 rather than sorting them as text.
+            'name' => 'levels.number',
+            'admin' => 'admins.first_name',
+        ];
+    }
+
+    protected function applySortJoins($query)
+    {
+        $query->select('levels.*');
+
+        return $this->sortField === 'admin'
+            ? $query->leftJoin('admins', 'admins.id', '=', 'levels.admin_id')
+            : $query;
+    }
+
     public function render()
     {
         $levels = Level::query()
@@ -153,9 +178,9 @@ class LevelsCrud extends Component
                     $q->where('name', 'LIKE', "%{$search}%")
                         ->orWhere('number', 'LIKE', "%{$search}%");
                 });
-            })
-            ->orderBy('number')
-            ->paginate(20);
+            });
+
+        $levels = $this->applySorting($levels, 'levels.number', 'asc')->paginate(20);
 
         return view('livewire.admin.levels.levels-crud', [
             'levels' => $levels,

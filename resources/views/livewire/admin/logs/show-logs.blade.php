@@ -15,11 +15,16 @@
                             <thead>
                                 <tr class="fw-semibold text-center">
 
-                                    <th>User Type</th>
-                                    <th>Email/UserName</th>
-                                    <th>Location</th>
-                                    <th>IP</th>
-                                    <th>Login At</th>
+                                    <x-admin.sortable-header field="type" label="User Type"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="username" label="Email/UserName"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="location" label="Location"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="ip" label="IP"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="created_at" label="Login At"
+                                        :current="$sortField" :direction="$sortDirection" />
 
                                 </tr>
                             </thead>

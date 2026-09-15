@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Students;
 
+use App\Livewire\Concerns\WithTableSorting;
 use App\Exports\StudentExport;
 use App\Models\Grade;
 use App\Models\Level;
@@ -21,6 +22,7 @@ use ZipArchive;
 class AllStudents extends Component
 {
     use WithPagination;
+    use WithTableSorting;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -661,9 +663,39 @@ class AllStudents extends Component
         );
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return [
+            'name' => 'students.name',
+            'registration' => 'students.registration',
+            'grade' => 'grades.number',
+            'level' => 'levels.number',
+            'section' => 'sections.name',
+            'school' => 'schools.name',
+        ];
+    }
+
+    protected function applySortJoins($query)
+    {
+        // schools, sections and grades all have a `name`, so the base columns
+        // must be reselected explicitly or the join makes them ambiguous.
+        $query->select('students.*');
+
+        return match ($this->sortField) {
+            'grade' => $query->leftJoin('grades', 'grades.id', '=', 'students.grade_id'),
+            'level' => $query->leftJoin('levels', 'levels.id', '=', 'students.level_id'),
+            'section' => $query->leftJoin('sections', 'sections.id', '=', 'students.section_id'),
+            'school' => $query->leftJoin('schools', 'schools.id', '=', 'students.school_id'),
+            default => $query,
+        };
+    }
+
     public function render()
     {
-        $students = $this->LoadStudents()->paginate(20);
+        $students = $this->applySorting($this->LoadStudents(), 'students.name', 'asc')->paginate(20);
 
         $schools = School::select('id', 'name')
             ->distinct()

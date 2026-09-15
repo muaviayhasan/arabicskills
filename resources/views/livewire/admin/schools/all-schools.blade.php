@@ -11,22 +11,25 @@
                                 placeholder="Search by Name, Email, or ID...">
                         </div>
                         <div class="col-12 col-md-6 col-lg-3">
+                            {{-- Spacer matching the Search label, so the buttons line up
+                                 with the input rather than sitting below it. --}}
+                            <label class="form-label d-none d-md-block" aria-hidden="true">&nbsp;</label>
                             <div class="d-flex gap-2">
                                 <button type="button" wire:click="manageSearch" class="btn btn-primary flex-fill" wire:loading.attr="disabled">
                                     <span wire:loading.remove wire:target="manageSearch">
-                                        <i class="bx bx-search-alt"></i> Search
+                                        <i class="bx bx-search-alt align-middle"></i> Search
                                     </span>
                                     <span wire:loading wire:target="manageSearch">
-                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span class="spinner-border spinner-border-sm align-middle" role="status" aria-hidden="true"></span>
                                         Searching...
                                     </span>
                                 </button>
                                 <button type="button" wire:click="resetFilters" class="btn btn-secondary flex-fill" wire:loading.attr="disabled">
                                     <span wire:loading.remove wire:target="resetFilters">
-                                        <i class="bx bx-reset"></i> Reset
+                                        <i class="bx bx-reset align-middle"></i> Reset
                                     </span>
                                     <span wire:loading wire:target="resetFilters">
-                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span class="spinner-border spinner-border-sm align-middle" role="status" aria-hidden="true"></span>
                                         Resetting...
                                     </span>
                                 </button>
@@ -40,7 +43,7 @@
 
     <x-admin.list-toolbar>
         <a href="{{ route('admin.add-school') }}" class="btn btn-primary">
-            <i class='bx bx-plus-circle'></i> Add
+            <i class='bx bx-plus-circle align-middle'></i> Add
         </a>
     </x-admin.list-toolbar>
 
@@ -56,9 +59,13 @@
                                     <th>
                                         Logo
                                     </th>
-                                    <th style="width: 210px;">Name</th>
-                                    <th>Email</th>
-                                    <th>Students</th>
+                                    <x-admin.sortable-header field="name" label="Name"
+                                        :current="$sortField" :direction="$sortDirection"
+                                        style="width: 210px;" />
+                                    <x-admin.sortable-header field="email" label="Email"
+                                        :current="$sortField" :direction="$sortDirection" />
+                                    <x-admin.sortable-header field="students" label="Students"
+                                        :current="$sortField" :direction="$sortDirection" />
                                     <th>Import</th>
                                     <th>Action</th>
                                 </tr>
@@ -95,16 +102,11 @@
                                     </td>
                                     <td>
                                         <div class="dropdown">
-                                            <button type="button" class="btn btn-danger light sharp"
-                                                data-bs-toggle="dropdown">
-                                                <svg width="20px" height="20px" viewBox="0 0 24 24" version="1.1">
-                                                    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                                        <rect x="0" y="0" width="24" height="24" />
-                                                        <circle fill="#000000" cx="5" cy="12" r="2" />
-                                                        <circle fill="#000000" cx="12" cy="12" r="2" />
-                                                        <circle fill="#000000" cx="19" cy="12" r="2" />
-                                                    </g>
-                                                </svg>
+                                            <button type="button"
+                                                class="btn btn-sm btn-danger border-0 shadow-none p-2"
+                                                data-bs-toggle="dropdown"
+                                                aria-label="Actions for {{ $school->name }}">
+                                                <i class='bx bx-dots-vertical-rounded fs-5 align-middle'></i>
                                             </button>
                                             <div class="dropdown-menu me-5">
                                                 @if (getPermissions('schools', 'edit'))
