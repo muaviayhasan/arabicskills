@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Options;
 
 use App\Models\Option;
+use App\Support\MarkRanges;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -48,6 +49,10 @@ class Settings extends Component
             Option::where('key', 'current_academic_year')->value('value') ?: date('Y')
         );
 
+        foreach (MarkRanges::DEFAULTS as $key => $default) {
+            $this->inputs[$key] ??= $default;
+        }
+
         if (! File::exists(storage_path('app/public/logo/'))) {
             File::makeDirectory(storage_path('app/public/logo/'), $mode = 0777, true, true);
         }
@@ -56,13 +61,13 @@ class Settings extends Component
     public function updateSettings()
     {
 
-        $this->validate([
+        $this->validate(array_merge([
             'inputs.web_name' => 'required|string',
             'inputs.web_email' => 'required|email',
             'inputs.logo' => 'nullable|sometimes|image',
             'inputs.terms' => 'required',
             'inputs.current_academic_year' => 'required|integer|min:2000|max:2100',
-        ]);
+        ], MarkRanges::rules()), [], MarkRanges::attributes());
 
         try {
             DB::beginTransaction();
@@ -94,8 +99,13 @@ class Settings extends Component
 
             config()->set('options.current_academic_year', $academicYear);
 
+            // Saved explicitly, so they are stored even where no row exists yet.
+            foreach (array_keys(MarkRanges::DEFAULTS) as $key) {
+                Option::updateOrCreate(['key' => $key], ['value' => (string) $this->inputs[$key]]);
+            }
+
             foreach ($this->settings as $setting) {
-                if ($setting->key === 'current_academic_year') {
+                if ($setting->key === 'current_academic_year' || array_key_exists($setting->key, MarkRanges::DEFAULTS)) {
                     continue;
                 }
 
@@ -105,6 +115,8 @@ class Settings extends Component
             }
 
             DB::commit();
+            MarkRanges::flush();
+
             $this->dispatch(
                 'swal:alert',
                 icon: 'success',

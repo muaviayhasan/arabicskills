@@ -98,6 +98,78 @@
                                         class="text-danger ms-2">{{ str_replace(['inputs.', 'field'], '', $message) }}</span>
                                 @enderror
                             </div>
+
+                            {{-- Mark ranges: decide Below / In line / Above for uploaded marks. --}}
+                            <div class="col-md-12 mt-2">
+                                <hr>
+                                <h5 class="mb-1">Mark Ranges</h5>
+                                <p class="text-muted mb-3">
+                                    Set where <strong>In line</strong> and <strong>Above</strong> begin.
+                                    Anything lower is <strong>Below</strong>.
+                                </p>
+                            </div>
+
+                            @foreach (\App\Support\MarkRanges::LABELS as $scale => $scaleLabel)
+                                @php($max = \App\Support\MarkRanges::MAX[$scale])
+                                @php($inLineKey = "mark_{$scale}_in_line_from")
+                                @php($aboveKey = "mark_{$scale}_above_from")
+                                <div class="col-md-6 mb-3">
+                                    <h6>{{ $scaleLabel }} <small class="text-muted">(out of {{ $max }})</small></h6>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label small mb-1">In line starts at</label>
+                                            <input wire:model.live.debounce.400ms="inputs.{{ $inLineKey }}" type="number"
+                                                class="form-control" min="1" max="{{ $max - 1 }}" step="1">
+                                            @error('inputs.' . $inLineKey)
+                                                <span class="text-danger small">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small mb-1">Above starts at</label>
+                                            <input wire:model.live.debounce.400ms="inputs.{{ $aboveKey }}" type="number"
+                                                class="form-control" min="2" max="{{ $max }}" step="1">
+                                            @error('inputs.' . $aboveKey)
+                                                <span class="text-danger small">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    {{-- Live preview, in the client's colours. --}}
+                                    <div class="mt-2">
+                                        @if (\App\Support\MarkRanges::isValid($inputs[$inLineKey] ?? null, $inputs[$aboveKey] ?? null, $max))
+                                            @foreach (\App\Support\MarkRanges::bandsFor((int) $inputs[$inLineKey], (int) $inputs[$aboveKey], $max) as $band)
+                                                <span @class([
+                                                    'badge me-1 fs-6 fw-normal',
+                                                    'bg-danger' => $band['label'] === 'Below',
+                                                    'bg-warning text-dark' => $band['label'] === 'In line',
+                                                    'bg-success' => $band['label'] === 'Above',
+                                                ])>{{ $band['label'] }}: {{ $band['from'] }} – {{ $band['to'] }}</span>
+                                            @endforeach
+                                        @else
+                                            <small class="text-danger">
+                                                "Above" must start higher than "In line", and both must be between 1 and {{ $max }}.
+                                            </small>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+
+                            <div class="col-md-12 mb-3">
+                                <h6>Show marks as</h6>
+                                <div class="form-check form-check-inline">
+                                    <input wire:model.defer="inputs.mark_display" class="form-check-input" type="radio"
+                                        id="mark-display-number" value="{{ \App\Support\MarkRanges::DISPLAY_NUMBER }}">
+                                    <label class="form-check-label" for="mark-display-number">Number <small class="text-muted">(e.g. 14)</small></label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input wire:model.defer="inputs.mark_display" class="form-check-input" type="radio"
+                                        id="mark-display-percentage" value="{{ \App\Support\MarkRanges::DISPLAY_PERCENTAGE }}">
+                                    <label class="form-check-label" for="mark-display-percentage">Percentage <small class="text-muted">(e.g. 70%)</small></label>
+                                </div>
+                                @error('inputs.mark_display')
+                                    <span class="text-danger d-block small">{{ $message }}</span>
+                                @enderror
+                            </div>
                         </div>
                     </form>
                 </div>
