@@ -3,6 +3,8 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\QuestionBankController;
+use App\Livewire\Admin\AssessmentMarks\AllMarks;
+use App\Livewire\Admin\AssessmentMarks\ImportMarks;
 use App\Livewire\Admin\Admins\AddAdmin;
 use App\Livewire\Admin\Admins\AllAdmins;
 use App\Livewire\Admin\Admins\EditAdmin;
@@ -151,6 +153,10 @@ Route::middleware(['auth:admin', 'permissions'])->prefix('/adminino')->group(fun
     Route::get('/check-exam/{exam_id}/details', StudentExamDetails::class)->name('admin.student-exam.details')->middleware('permissions:results,edit');
 
     Route::get('/check-exam/{type}/{exam_id}', CheckExam::class)->name('admin.check-exam')->middleware('permissions:results,edit');
+    // assessment marks (imported from the school's own mark sheets)
+    Route::get('/assessment-marks/import', ImportMarks::class)->name('admin.import-assessment-marks')->middleware('permissions:results,add');
+    Route::get('/assessment-marks', AllMarks::class)->name('admin.assessment-marks')->middleware('permissions:results,view');
+
     Route::get('/results/{school?}', AllResults::class)->name('admin.results')->middleware('permissions:results,view');
     Route::get('/results/{type}/{exam_id}', ShowPaper::class)->name('admin.show-exam')->middleware('permissions:results,view');
 

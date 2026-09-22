@@ -271,6 +271,14 @@
                                 </a>
 
                             </li>
+
+                            <li class="mb-1 {{ request()->routeIs(['admin.assessment-marks', 'admin.import-assessment-marks']) ? 'mm-active' : '' }}">
+                                <a href="{{ route('admin.assessment-marks') }}">
+                                    <i class='bx bx-spreadsheet icon nav-icon'></i>
+                                    <span class="menu-item">Assessment Marks</span>
+                                </a>
+
+                            </li>
                         @endif
 
 
