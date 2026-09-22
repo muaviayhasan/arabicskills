@@ -24,3 +24,8 @@ yarn-error.log
 .env.*backup
 *.sql
 *.sql.gz
+
+# Client source documents (contain real student data)
+*.pdf
+*.xlsx
+!public/assets/images/sample.xlsx

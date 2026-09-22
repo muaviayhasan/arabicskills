@@ -26,9 +26,19 @@ class Student extends Authenticatable
         'user_name',
         'level_id',
         'nationality',
+        'gender',
+        'sen',
+        'gifted_talented',
+        'citizen',
         'password',
         'category',
         'image',
+    ];
+
+    protected $casts = [
+        'sen' => 'boolean',
+        'gifted_talented' => 'boolean',
+        'citizen' => 'boolean',
     ];
 
     protected function name(): Attribute

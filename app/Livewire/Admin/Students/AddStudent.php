@@ -8,6 +8,7 @@ use App\Models\Level;
 use App\Models\School;
 use App\Models\Section;
 use App\Models\Student;
+use App\Support\StudentDemographics;
 use App\Support\StudentUsername;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +36,9 @@ class AddStudent extends Component
         $this->inputs['school_id'] = $school_id;
         if ($school_id) {
             $this->schools = School::where('id', $school_id)->get();
-            $this->sections = Section::where('grade_id', $this->inputs['grade_id'])->where('school_id', $this->inputs['school_id'])->get();
+            // No grade is chosen yet, so there are no sections to list.
+            // updateSections() loads them once a grade is picked.
+            $this->sections = collect();
         } else {
             $this->schools = School::all();
         }
@@ -64,7 +67,7 @@ class AddStudent extends Component
     {
         $year = current_academic_year();
 
-        $this->validate([
+        $this->validate(array_merge([
             'inputs.name' => 'required',
             'inputs.registration' => 'required|unique:students,registration,NULL,id,year,'.$year,
             'inputs.level_id' => 'required|exists:levels,id',
@@ -75,7 +78,7 @@ class AddStudent extends Component
             'inputs.section_id' => 'required',
             'inputs.grade_id' => 'required',
             'inputs.image' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
-        ]);
+        ], StudentDemographics::formRules()));
 
         try {
             DB::beginTransaction();
@@ -93,7 +96,7 @@ class AddStudent extends Component
             $this->inputs['year'] = $year;
             $this->inputs['user_name'] = StudentUsername::forNewStudent($this->inputs['registration'], $year);
 
-            $std = Student::create($this->inputs);
+            $std = Student::create(StudentDemographics::normaliseFormInputs($this->inputs));
 
             Exam::reconcileStudentExams($std);
 

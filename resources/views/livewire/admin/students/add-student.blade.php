@@ -164,6 +164,8 @@
                             @enderror
                         </div>
                     </div>
+
+                    @include('livewire.admin.students.partials.demographic-fields')
                 </div>
             </div>
             <div class="modal-footer">

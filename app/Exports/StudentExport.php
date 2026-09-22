@@ -2,10 +2,12 @@
 
 namespace App\Exports;
 
+use App\Support\StudentDemographics;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -36,6 +38,12 @@ class StudentExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             'Level',
             'Nationality',
             'Category',
+            // Same order and headings as the upload template, so an exported
+            // sheet can be edited and uploaded straight back.
+            'Gender',
+            'SEN',
+            'G&T',
+            'Citizen',
         ];
     }
 
@@ -52,6 +60,10 @@ class StudentExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             optional($row->assignedLevel)->name ?? '',
             $row->nationality,
             $row->category,
+            StudentDemographics::genderLabel($row->gender),
+            StudentDemographics::flagLabel($row->sen),
+            StudentDemographics::flagLabel($row->gifted_talented),
+            StudentDemographics::flagLabel($row->citizen),
         ];
     }
 
@@ -60,9 +72,12 @@ class StudentExport implements FromQuery, WithHeadings, WithMapping, WithStyles
         // ✅ Get total rows from query
         $count = (clone $this->query)->count() + 1; // +1 for heading row
 
+        // Derived from the headings, so adding a column can't leave it unstyled.
+        $lastColumn = Coordinate::stringFromColumnIndex(count($this->headings()));
+
         // Header styling
-        $sheet->getStyle('A1:J1')->getFont()->setBold(true);
-        $sheet->getStyle('A1:J1')->applyFromArray([
+        $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true);
+        $sheet->getStyle("A1:{$lastColumn}1")->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
@@ -70,13 +85,13 @@ class StudentExport implements FromQuery, WithHeadings, WithMapping, WithStyles
             ],
         ]);
 
-        $sheet->getStyle('A1:J1')->getFill()->applyFromArray([
+        $sheet->getStyle("A1:{$lastColumn}1")->getFill()->applyFromArray([
             'fillType' => 'solid',
             'color' => ['rgb' => 'c2e3c7'],
         ]);
 
         // Optional: apply borders to all rows
-        $sheet->getStyle("A1:J{$count}")->applyFromArray([
+        $sheet->getStyle("A1:{$lastColumn}{$count}")->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,

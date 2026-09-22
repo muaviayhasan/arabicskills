@@ -82,6 +82,10 @@
                             <th>Level</th>
                             <th>Nationality</th>
                             <th>Category</th>
+                            <th>Gender</th>
+                            @foreach (\App\Support\StudentDemographics::FLAGS as $label)
+                                <th>{{ $label }}</th>
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody>
@@ -123,11 +127,25 @@
                                     </td>
                                     <td>{{ $student['nationality'] }}</td>
                                     <td>{{ $student['category'] }}</td>
+                                    @php($demographics = $student['_demographics'] ?? ['values' => [], 'errors' => []])
+                                    @foreach (['gender' => null] + \App\Support\StudentDemographics::FLAGS as $column => $unused)
+                                        <td>
+                                            @if (isset($demographics['errors'][$column]))
+                                                {{-- Show what was typed, and why it will be rejected. --}}
+                                                <span class="text-danger">{{ $student[$column] }}</span>
+                                                <br /><small class="text-danger">Not recognised</small>
+                                            @elseif ($column === 'gender')
+                                                {{ \App\Support\StudentDemographics::genderLabel($demographics['values'][$column] ?? null) }}
+                                            @else
+                                                {{ \App\Support\StudentDemographics::flagLabel($demographics['values'][$column] ?? null) }}
+                                            @endif
+                                        </td>
+                                    @endforeach
                                 </tr>
                             @endforeach
                         @else
                             <tr class="text-center position-reletive" style="height: 100px;">
-                                <td class="bg-white" colspan="10">
+                                <td class="bg-white" colspan="14">
 
                                     <div wire:loading wire:target="import"
                                         class="spinner-container position-absolute bottom-50 start-50 translate-middle"

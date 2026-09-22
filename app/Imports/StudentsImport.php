@@ -24,6 +24,16 @@ class StudentsImport implements ToArray, WithHeadingRow
             $this->students[$i]['level'] = trim(str_replace('  ', ' ', $row['level'] ?? ""));
             $this->students[$i]['nationality'] = trim(str_replace('  ', ' ', $row['nationality'] ?? ""));
             $this->students[$i]['category'] = trim(str_replace('  ', ' ', $row['category'] ?? ""));
+
+            // Optional columns. Older templates don't have them, which reads as
+            // blank and leaves any saved value untouched.
+            $this->students[$i]['gender'] = trim((string) ($row['gender'] ?? ''));
+            $this->students[$i]['sen'] = trim((string) ($row['sen'] ?? ''));
+            // "G&T" slugs to `gt`, "G & T" to `g_t`.
+            $this->students[$i]['gifted_talented'] = trim((string) (
+                $row['gt'] ?? $row['g_t'] ?? $row['gifted_talented'] ?? $row['gifted_and_talented'] ?? ''
+            ));
+            $this->students[$i]['citizen'] = trim((string) ($row['citizen'] ?? ''));
         }
     }
 

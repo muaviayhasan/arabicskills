@@ -8,6 +8,7 @@ use App\Models\Level;
 use App\Models\School;
 use App\Models\Section;
 use App\Models\Student;
+use App\Support\StudentDemographics;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -38,6 +39,12 @@ class EditStudent extends Component
         $this->inputs = $this->student->toArray();
         unset($this->inputs['image'], $this->inputs['user_name'], $this->inputs['year']);
 
+        // The Yes/No selects hold "1" / "0" / "", not booleans.
+        $this->inputs['gender'] = $this->student->gender ?? '';
+        foreach (array_keys(StudentDemographics::FLAGS) as $column) {
+            $this->inputs[$column] = StudentDemographics::toFormValue($this->student->{$column});
+        }
+
         $this->schools = School::all();
 
         $this->sections = Section::where('grade_id', $this->inputs['grade_id'])->where('school_id', $this->inputs['school_id'])->get();
@@ -65,7 +72,7 @@ class EditStudent extends Component
     public function updateStudent()
     {
 
-        $this->validate([
+        $this->validate(array_merge([
             'inputs.name' => 'required',
             'inputs.registration' => 'required|unique:students,registration,'.$this->student->id.',id,year,'.$this->student->year,
             'inputs.level_id' => 'required|exists:levels,id',
@@ -76,7 +83,7 @@ class EditStudent extends Component
             'inputs.section_id' => 'required',
             'inputs.grade_id' => 'required',
             'inputs.image' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
-        ]);
+        ], StudentDemographics::formRules()));
 
         try {
             DB::beginTransaction();
@@ -95,7 +102,7 @@ class EditStudent extends Component
 
             unset($this->inputs['user_name'], $this->inputs['year']);
 
-            $this->student->update($this->inputs);
+            $this->student->update(StudentDemographics::normaliseFormInputs($this->inputs));
 
             Exam::reconcileStudentExams($this->student->fresh());
 

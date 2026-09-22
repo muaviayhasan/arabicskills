@@ -7,11 +7,13 @@ use App\Models\Exam;
 use App\Models\School;
 use App\Models\Section;
 use App\Models\Student;
+use App\Support\StudentDemographics;
 use App\Support\StudentImportRowResolver;
 use App\Support\StudentUsername;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Maatwebsite\Excel\Facades\Excel;
@@ -179,6 +181,14 @@ class ImportStudent extends Component
                 $levelId = $resolved['level_id'];
                 $gradeId = $resolved['grade_id'];
 
+                $demographics = $this->resolveDemographics($student);
+
+                if ($demographics['errors']) {
+                    $errors[] = "Row {$row}: ".implode(' ', $demographics['errors']);
+
+                    continue;
+                }
+
                 [$sectionKey, $sectionTitle] = $normalize($student['section'], 'Unknown Section');
                 $sectionMapKey = $gradeId.'|'.$sectionKey;
 
@@ -224,6 +234,11 @@ class ImportStudent extends Component
                     'category' => $student['category'] ?? '',
                 ];
 
+                // Only write a field the sheet provides. A blank cell, or an older
+                // template without the column, must not wipe a value already saved.
+                // (false is kept: "-" is an explicit No.)
+                $studentData += array_filter($demographics['values'], fn ($value) => $value !== null);
+
                 if ($existing) {
                     $existing->update($studentData);
                     Exam::reconcileStudentExams($existing->fresh());
@@ -238,7 +253,9 @@ class ImportStudent extends Component
             }
 
             if ($errors) {
-                DB::rollBack();
+                // No rollBack() here: the catch below does it. Rolling back in
+                // both places undid one transaction level too many, which
+                // unwinds any transaction the caller already had open.
                 throw new Exception(
                     "Import failed:\n".
                     implode("\n", array_slice($errors, 0, 10)).
@@ -281,9 +298,38 @@ class ImportStudent extends Component
             $rows[$i]['_resolved_level_name'] = $resolved['level_name'];
             $rows[$i]['_resolved_grade_name'] = $resolved['grade_name'];
             $rows[$i]['_resolution_errors'] = $resolved['errors'];
+            $rows[$i]['_demographics'] = $this->resolveDemographics($row);
         }
 
         return $rows;
+    }
+
+    /**
+     * Parse Gender, SEN, G&T and Citizen for one row. Blank values come back
+     * as null (leave unchanged); unrecognised ones as an error keyed by column.
+     *
+     * @return array{values: array<string, string|bool|null>, errors: array<string, string>}
+     */
+    protected function resolveDemographics(array $row): array
+    {
+        $values = [];
+        $errors = [];
+
+        try {
+            $values['gender'] = StudentDemographics::parseGender($row['gender'] ?? '');
+        } catch (InvalidArgumentException $e) {
+            $errors['gender'] = $e->getMessage();
+        }
+
+        foreach (StudentDemographics::FLAGS as $column => $label) {
+            try {
+                $values[$column] = StudentDemographics::parseFlag($row[$column] ?? '', $label);
+            } catch (InvalidArgumentException $e) {
+                $errors[$column] = $e->getMessage();
+            }
+        }
+
+        return ['values' => $values, 'errors' => $errors];
     }
 
     public function render()

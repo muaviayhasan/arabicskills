@@ -191,6 +191,10 @@
                                             @if ($student->trashed())
                                                 <span class="badge bg-secondary ms-1">Archived</span>
                                             @endif
+                                            @php($details = \App\Support\StudentDemographics::summary($student))
+                                            @if ($details !== '')
+                                                <br /><small class="text-primary">{{ $details }}</small>
+                                            @endif
                                             <br />
                                             <small class="text-muted">
                                                 Created: {{ date('d M, Y H:i', strtotime($student->created_at)) }}
