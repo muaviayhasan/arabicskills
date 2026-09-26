@@ -5,10 +5,12 @@ namespace App\Livewire\Admin\ExamCheck;
 use App\Exports\ResultExports;
 use App\Livewire\Concerns\RestrictsToAdminSchool;
 use App\Livewire\Concerns\WithTableSorting;
+use App\Models\Grade;
 use App\Models\Level;
 use App\Models\School;
 use App\Models\StudentExam;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
@@ -30,6 +32,10 @@ class AllResults extends Component
     public $searchSchool;
 
     public $year;
+
+    public $grade_id = '';
+
+    public $level_id = '';
 
     public $archiveStatus = 'active';
 
@@ -60,9 +66,52 @@ class AllResults extends Component
     public function exportExcel()
     {
         return Excel::download(
-            new ResultExports($this->searchColumn, $this->searchWord, $this->searchSchool, $this->year, $this->archiveStatus),
-            'student_list_date_'.Carbon::now()->format('Y-m-d').'.xlsx'
+            new ResultExports(
+                $this->searchColumn,
+                $this->searchWord,
+                $this->searchSchool,
+                $this->year,
+                $this->archiveStatus,
+                $this->grade_id,
+                $this->level_id,
+            ),
+            $this->exportFileName()
         );
+    }
+
+    /**
+     * Name the file after what it contains, so several exports do not sit in a
+     * downloads folder as indistinguishable copies.
+     *
+     * e.g. al-salam-private-school-year-9-level-3-results-2026-09-24.xlsx
+     */
+    protected function exportFileName(): string
+    {
+        $parts = [];
+
+        $school = $this->searchSchool ? School::find($this->searchSchool) : null;
+        $parts[] = $school ? Str::slug($school->name) : 'all-schools';
+
+        if ($this->grade_id && $grade = Grade::find($this->grade_id)) {
+            $parts[] = Str::slug($grade->name);
+        }
+
+        if ($this->level_id && $level = Level::find($this->level_id)) {
+            $parts[] = Str::slug($level->name);
+        }
+
+        if ($this->year) {
+            $parts[] = $this->year;
+        }
+
+        if ($this->archiveStatus && $this->archiveStatus !== 'active') {
+            $parts[] = $this->archiveStatus;
+        }
+
+        $parts[] = 'results';
+        $parts[] = Carbon::now()->format('Y-m-d');
+
+        return implode('-', $parts).'.xlsx';
     }
 
     public function manageSearch($searchWord, $searchColumn)
@@ -173,6 +222,15 @@ class AllResults extends Component
                 $query->whereRelation('Student', 'registration', 'LIKE', "%{$this->searchWord}%");
             })
 
+            ->when($this->grade_id, function ($query) {
+                $query->whereRelation('Exam', 'grade_id', $this->grade_id);
+            })
+            ->when($this->level_id, function ($query) {
+                // exams.level_ids is a JSON array of the levels an exam covers.
+                $query->whereHas('Exam', function ($exam) {
+                    $exam->whereJsonContains('level_ids', (int) $this->level_id);
+                });
+            })
             ->where('checked', true)
             ->with(['Exam' => function ($quer) {
                 $quer->applyArchiveFilters($this->archiveStatus)
@@ -190,6 +248,8 @@ class AllResults extends Component
 
         return view('livewire.admin.exam-check.all-results', [
             'exams' => $exams,
+            'grades' => Grade::query()->whereNotNull('number')->orderBy('number')->get(['id', 'name']),
+            'levels' => Level::query()->orderBy('number')->get(['id', 'name']),
         ])->layout('layouts.base')->layoutData([
             'title' => 'Exam Results',
             'pageTitle' => 'Exam Results',

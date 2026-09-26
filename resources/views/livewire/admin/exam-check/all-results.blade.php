@@ -1,30 +1,84 @@
 <div>
 
+    {{-- School, Grade and Level, three across one row --}}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">School</label>
+                            <select class="form-control" wire:model.live="searchSchool" wire:change="search">
+                                <option value="">All Schools</option>
+                                @foreach ($schools as $sch)
+                                    <option value="{{ $sch->id }}">{{ $sch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Grade</label>
+                            <select class="form-control" wire:model.live="grade_id" wire:change="search">
+                                <option value="">All Grades</option>
+                                @foreach ($grades as $grade)
+                                    <option value="{{ $grade->id }}">{{ $grade->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Level</label>
+                            <select class="form-control" wire:model.live="level_id" wire:change="search">
+                                <option value="">All Levels</option>
+                                @foreach ($levels as $level)
+                                    <option value="{{ $level->id }}">{{ $level->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Academic Year</label>
+                            <x-student-academic-year-select class="form-control" wire:model.live="year"
+                                wire:change="search" />
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Status</label>
+                            <select wire:model.live="archiveStatus" wire:change="search" class="form-control"
+                                title="Applies to both students and exams">
+                                <option value="active">Active</option>
+                                <option value="archived">Archived</option>
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+
+                        {{-- These two keep their ids and wire:ignore: the search is driven
+                             by jQuery in the layout, which binds to #searchColumn and #searchWord. --}}
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Filter By</label>
+                            <select id="searchColumn" class="form-control" wire:ignore>
+                                <option value="">Select</option>
+                                <option value="term">Exam Term</option>
+                                <option value="grade">Exam Grade</option>
+                                <option value="section">Student Section</option>
+                                <option value="level">Exam Level</option>
+                                <option value="student">Student Registration</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Search</label>
+                            <input type="text" id="searchWord" class="form-control" wire:ignore
+                                placeholder="Type search term">
+                            <span id="searchColumnError" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <x-admin.list-toolbar>
-        <select class="form-control bg-light border-light rounded" wire:model.live="searchSchool" wire:change="search" style="max-width: 200px;">
-            <option value="">Select School</option>
-            @foreach ($schools as $sch)
-                <option {{ $sch->id == $searchSchool ? 'selected' : '' }} value="{{ $sch->id }}">{{ $sch->name }}</option>
-            @endforeach
-        </select>
-        <x-student-academic-year-select wire:model.live="year" wire:change="search" />
-        <select wire:model.live="archiveStatus" wire:change="search" class="form-control bg-light border-light rounded" style="max-width: 140px;" title="Applies to both students and exams">
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="all">All</option>
-        </select>
-        <select id="searchColumn" class="form-control bg-light border-light rounded" wire:ignore style="max-width: 180px;">
-            <option value="">Filter By</option>
-            <option value="term">Exam Term</option>
-            <option value="grade">Exam Grade</option>
-            <option value="section">Student Section</option>
-            <option value="level">Exam Level</option>
-            <option value="student">Student Registration</option>
-        </select>
-        <input type="text" id="searchWord" class="form-control bg-light border-light rounded" wire:ignore placeholder="Type search term" style="max-width: 200px;">
-        <span id="searchColumnError" class="text-danger align-self-center"></span>
         <button class="btn btn-success" type="button" wire:click.prevent="exportExcel">
-            <i class='bx bx-spreadsheet'></i> Export
+            <i class='bx bx-spreadsheet align-middle'></i> Export
         </button>
     </x-admin.list-toolbar>
 
