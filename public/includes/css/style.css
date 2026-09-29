@@ -8,7 +8,7 @@
 
 body {
   font-family: "Jost", "Noto Naskh Arabic", sans-serif !important;
-  background-color: #f7f8fb;
+  background-color: #f1f6f3;
 }
 
 .btn-cls {
@@ -100,8 +100,7 @@ body {
 }
 
 .page-title {
-  background-color: #262d38;
-  background-image: linear-gradient(162deg, #39424f 0%, #262d38 48%, #171c24 100%);
+  background-color: #000053;
   position: relative;
 }
 
@@ -1245,19 +1244,27 @@ audio::-webkit-media-controls-panel {
    than changing it.
    ------------------------------------------------------------------ */
 .ast-header {
-  --ast-chalk: #ffffff;
-  --ast-chalk-soft: rgba(255, 255, 255, 0.8);
-  --ast-chalk-mute: rgba(255, 255, 255, 0.62);
-  --ast-line: rgba(255, 255, 255, 0.16);
+  --ast-brand: #000053;
+  --ast-ink: #0f1a16;
+  --ast-ink-soft: #152420;
+  --ast-ink-mute: #172722;
+  --ast-line: rgba(15, 26, 22, 0.22);
 
-  /* The brand navy, as ink rather than a flat slab: lifted at the top and
-     pooling darker at the bottom edge. #000053 sits in the middle of the
-     range, so the band matches the navy in the mark and on the cards below. */
-  background-image: linear-gradient(162deg, #1b1b6d 0%, #000053 48%, #000038 100%);
+  /* Patina leading, Olivine as the light end. Patina is a mid-tone with little
+     headroom either way — white only reaches 3.2:1 on it — so the type is dark:
+     navy for the title at 5.8:1, and the meta stepped in tone rather than tinted
+     grey, since a mid grey drops below 4.5:1 here. The gradient runs across
+     rather than down so the whole text column stays on Patina. */
+  background-image: linear-gradient(115deg, #5f9b8c 0%, #5f9b8c 58%, #a0c382 100%);
+  border-bottom: 3px solid #24463f;
   /* A definite edge, so the header reads as a region rather than dissolving
      into the page. A deepened Patina: Patina itself is only 1.6:1 against
      Olivine and would not be seen. */
-  color: var(--ast-chalk);
+  color: var(--ast-ink);
+}
+
+.ast-header-title {
+  color: var(--ast-brand);
 }
 
 /* The stationery pattern is white line art, drawn for a dark ground. On a
@@ -1268,14 +1275,6 @@ audio::-webkit-media-controls-panel {
   opacity: 0.05;
 }
 
-/* Keeps the type off the busiest part of the pattern without hiding it. */
-.ast-header::after {
-  position: absolute;
-  content: "";
-  inset: 0;
-  background: linear-gradient(90deg, rgba(0, 0, 60, 0.85) 0%, rgba(0, 0, 60, 0.45) 38%, rgba(0, 0, 60, 0) 68%);
-  pointer-events: none;
-}
 
 /* Sits above .page-title::before, which is the pattern wash. */
 .ast-header .container {
@@ -1297,19 +1296,14 @@ audio::-webkit-media-controls-panel {
 .ast-header-mark {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  height: 54px;
-  padding: 7px 16px;
-  background: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
+  height: 138px;
   flex: 0 0 auto;
 }
 
 .ast-header-mark img {
   height: 100%;
   width: auto;
-  max-width: 200px;
+  max-width: 340px;
   object-fit: contain;
 }
 
@@ -1318,29 +1312,29 @@ audio::-webkit-media-controls-panel {
    nothing here. Set the real properties, at two classes so they beat .btn
    whatever the load order; the variables are kept for a future upgrade. */
 .ast-header .ast-header-logout {
-  --bs-btn-color: var(--ast-chalk);
-  --bs-btn-bg: rgba(255,255,255,.12);
-  --bs-btn-border-color: rgba(255,255,255,.28);
+  --bs-btn-color: var(--ast-brand);
+  --bs-btn-bg: rgba(255,255,255,.62);
+  --bs-btn-border-color: rgba(0,0,83,.16);
 
   padding: 0.35rem 1.1rem;
   font-size: 0.85rem;
-  background-color: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  background-color: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(0, 0, 83, 0.16);
   border-radius: 999px;
-  color: var(--ast-chalk);
+  color: var(--ast-brand);
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .ast-header .ast-header-logout:hover,
 .ast-header .ast-header-logout:focus-visible {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  color: var(--ast-chalk);
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 83, 0.34);
+  color: var(--ast-brand);
 }
 
 .ast-header a:focus-visible,
 .ast-header button:focus-visible {
-  outline: 2px solid var(--ast-chalk);
+  outline: 2px solid var(--ast-brand);
   outline-offset: 3px;
 }
 
@@ -1377,7 +1371,7 @@ audio::-webkit-media-controls-panel {
   font-size: 0.72em;
   font-weight: 500;
   line-height: 1.55;
-  color: var(--ast-chalk-soft);
+  color: var(--ast-ink-soft);
   /* rtl keeps the Arabic shaping and punctuation correct; the left alignment
      keeps it under the English, so the two read as one lockup. */
   direction: rtl;
@@ -1404,11 +1398,11 @@ audio::-webkit-media-controls-panel {
   gap: 0.4rem 0.9rem;
   margin-top: 0.5rem;
   font-size: 0.82rem;
-  color: var(--ast-chalk-soft);
+  color: var(--ast-ink-soft);
 }
 
 .ast-header-meta .label {
-  color: var(--ast-chalk-mute);
+  color: var(--ast-ink-mute);
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1419,21 +1413,20 @@ audio::-webkit-media-controls-panel {
   align-items: center;
   gap: 0.35rem;
   padding: 0.18rem 0.7rem;
-  background: rgba(255, 255, 255, 0.13);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26);
+  background: var(--ast-brand);
   border-radius: 999px;
-  color: var(--ast-chalk);
+  color: #ffffff;
   font-weight: 500;
 }
 
 /* The countdown was drawn white for a dark band. */
 .ast-header .progress-ring__circle {
-  stroke: rgba(255, 255, 255, 0.45);
+  stroke: rgba(255, 255, 255, 0.75);
   stroke-width: 6;
 }
 
 .ast-header .countdown .countdown-text {
-  color: var(--ast-chalk);
+  color: var(--ast-ink);
 }
 
 .ast-header-timer {
@@ -1443,11 +1436,11 @@ audio::-webkit-media-controls-panel {
 
 @media (max-width: 575.98px) {
   .ast-header-mark {
-    height: 38px;
+    height: 84px;
   }
 
   .ast-header-mark img {
-    max-width: 150px;
+    max-width: 200px;
   }
 
   .ast-header-main {
