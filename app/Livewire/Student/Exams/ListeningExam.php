@@ -6,6 +6,7 @@ use App\Livewire\Student\Concerns\LoadsStudentRelations;
 use App\Models\Activity;
 use App\Models\Exam;
 use App\Models\StudentExam;
+use App\Support\ExamActivityQuery;
 use App\Support\ExamSkillStatus;
 use Carbon\Carbon;
 use Livewire\Attributes\On;
@@ -51,7 +52,8 @@ class ListeningExam extends Component
 
         $exam = Exam::find($this->student_exam->exam_id);
 
-        $acties = $exam->listening_activities;
+        // Only this student's level, never the whole multi-level paper.
+        $acties = ExamActivityQuery::activityIdsForStudent($exam, $std, 'listening');
         if ($acties == [] || $exam->status != 'active') {
             return redirect()->route('student.exams')->with(['error' => 'Exam has no questions']);
         }

@@ -187,17 +187,48 @@
                     </div>
 
                     <div class="exam-card-body">
-                        <small class="text-muted d-block mb-2 fw-semibold">Activities</small>
+                        @php
+                            // On a multi-level exam the totals below are every level added
+                            // together, which is not the paper any one student sits.
+                            $coverage = \App\Support\ExamActivityQuery::levelCoverage($exam, array_keys($activitySkills));
+                            $gaps = collect($coverage)->filter(fn ($row) => $row['missing'] !== []);
+                        @endphp
+
+                        <small class="text-muted d-block mb-2 fw-semibold">
+                            Activities
+                            @if ($coverage)
+                                <span class="fw-normal">· totals across {{ count($coverage) }} levels</span>
+                            @endif
+                        </small>
                         <div class="activity-badges">
                             @foreach ($activitySkills as $key => $skill)
-                                @php $count = count($exam->{$key . '_activities'} ?? []); @endphp
+                                @php
+                                    $count = count($exam->{$key . '_activities'} ?? []);
+                                    $perLevel = collect($coverage)
+                                        ->map(fn ($row) => $row['level'] . ': ' . $row['counts'][$key])
+                                        ->implode(' · ');
+                                @endphp
                                 <a href="{{ route($skill['route'], ['exam_id' => $exam->id]) }}">
-                                    <span class="badge {{ $skill['badge'] }}">
+                                    <span class="badge {{ $skill['badge'] }}" @if ($perLevel) title="{{ $perLevel }}" @endif>
                                         {{ $skill['label'] }}: {{ $count > 0 ? $count : 'Not Assigned' }}
                                     </span>
                                 </a>
                             @endforeach
                         </div>
+
+                        @if ($gaps->isNotEmpty())
+                            {{-- A level with no activities for a skill means those students
+                                 have nothing to sit for it, however large the total looks. --}}
+                            <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                                <i class="bx bx-error-circle align-middle"></i>
+                                @foreach ($gaps as $row)
+                                    <div>
+                                        <strong>{{ $row['level'] }}</strong> has no
+                                        {{ collect($row['missing'])->map(fn ($m) => $activitySkills[$m]['label'])->join(', ', ' or ') }}
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
 
                     <div class="exam-card-footer">

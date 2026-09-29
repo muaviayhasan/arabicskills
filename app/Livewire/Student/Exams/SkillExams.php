@@ -5,6 +5,7 @@ namespace App\Livewire\Student\Exams;
 use App\Livewire\Student\Concerns\LoadsStudentRelations;
 use App\Models\Exam;
 use App\Models\StudentExam;
+use App\Support\ExamActivityQuery;
 use Livewire\Component;
 
 class SkillExams extends Component
@@ -94,9 +95,39 @@ class SkillExams extends Component
         }
     }
 
+    /**
+     * The activities this student is served per skill. An exam can cover
+     * several levels, so the list stored on the exam is not the paper any one
+     * student sits: a skill can be empty for their level even though the exam
+     * has plenty of it for another.
+     *
+     * @return array<string, list<int>>
+     */
+    public function skillActivities(): array
+    {
+        $exam = $this->latestExam?->Exam;
+        $student = $this->authenticatedStudent();
+
+        $activities = [];
+
+        foreach (array_keys($this->activityLabels) as $skill) {
+            $activities[$skill] = $exam
+                ? ExamActivityQuery::activityIdsForStudent($exam, $student, $skill)
+                : [];
+        }
+
+        return $activities;
+    }
+
     public function render()
     {
-        return view('livewire.student.exams.skill-exams')->layout('layouts.app')->layoutData([
+        $student = $this->authenticatedStudent();
+
+        return view('livewire.student.exams.skill-exams', [
+            'skillActivities' => $this->skillActivities(),
+            // The exam may be labelled "All Levels"; the student sits one.
+            'studentLevelName' => $student?->assignedLevel?->name,
+        ])->layout('layouts.app')->layoutData([
             'title' => 'Exams',
         ]);
     }

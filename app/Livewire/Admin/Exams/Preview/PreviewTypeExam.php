@@ -4,7 +4,9 @@ namespace App\Livewire\Admin\Exams\Preview;
 
 use App\Models\Activity;
 use App\Models\Exam;
+use App\Support\ExamActivityQuery;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class PreviewTypeExam extends Component
@@ -18,6 +20,14 @@ class PreviewTypeExam extends Component
     public string $title;
 
     public ?string $allocatedTime = null;
+
+    /**
+     * The level being previewed, carried over from the skill list. An exam
+     * built for several levels holds every level's activities in one list, so
+     * without this the preview shows a paper no student ever sits.
+     */
+    #[Url(as: 'level', except: '')]
+    public string $previewLevelId = '';
 
     private const TYPE_CONFIG = [
         'reading' => [
@@ -58,11 +68,26 @@ class PreviewTypeExam extends Component
         $this->title = $config['title'];
         $this->exam = $exam->load(['School', 'Grade']);
 
-        $activityIds = $this->exam->{$config['activities']} ?? [];
-        if (! is_array($activityIds) || count($activityIds) === 0) {
+        $levelIds = $this->exam->normalizedLevelIds();
+
+        if ($this->previewLevelId !== '' && ! in_array((int) $this->previewLevelId, $levelIds, true)) {
+            $this->previewLevelId = '';
+        }
+
+        if ($this->previewLevelId === '' && count($levelIds) > 1) {
+            $this->previewLevelId = (string) $levelIds[0];
+        }
+
+        $activityIds = ExamActivityQuery::activityIdsForLevel(
+            $this->exam,
+            $this->previewLevelId === '' ? null : (int) $this->previewLevelId,
+            $type
+        );
+
+        if (count($activityIds) === 0) {
             return redirect()
-                ->route('admin.exam-preview-types', ['exam' => $exam->id])
-                ->with('error', 'No activities assigned for this exam type.');
+                ->route('admin.exam-preview-types', ['exam' => $exam->id, 'level' => $this->previewLevelId ?: null])
+                ->with('error', 'No activities assigned for this exam type at the selected level.');
         }
 
         $this->activities = Activity::with('Question')

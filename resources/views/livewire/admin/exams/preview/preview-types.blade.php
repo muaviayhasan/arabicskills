@@ -27,8 +27,7 @@
                 $activities = ['reading', 'listening', 'writing', 'speaking', 'sentences_structures'];
                 $hasActivities = false;
                 foreach ($activities as $activity) {
-                    $activityIds = $exam->{$activity . '_activities'} ?? [];
-                    if (is_array($activityIds) && count($activityIds) > 0) {
+                    if (count($activityIdsByType[$activity] ?? []) > 0) {
                         $hasActivities = true;
                         break;
                     }
@@ -92,6 +91,31 @@
                 </div>
             @endif
 
+            @if ($levels->isNotEmpty())
+                {{-- This exam covers several levels. Each is a separate paper, so
+                     preview them one at a time, exactly as a student sits them. --}}
+                <div class="skill-exam-overview mx-auto mb-4">
+                    <div class="skill-exam-overview-body">
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <div>
+                                <h5 class="fw-bold mb-1">Preview level</h5>
+                                <small class="text-muted">
+                                    This exam covers {{ $levels->count() }} levels. A student sits only their own.
+                                </small>
+                            </div>
+                            <div class="ms-auto d-flex flex-wrap gap-2">
+                                @foreach ($levels as $level)
+                                    <button type="button" wire:click="$set('previewLevelId', '{{ $level->id }}')"
+                                        class="btn btn-sm {{ (string) $previewLevelId === (string) $level->id ? 'btn-primary' : 'btn-outline-primary' }}">
+                                        {{ $level->name }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             @if ($hasActivities)
                 <div class="skill-exam-alert skill-exam-alert-info">
                     <i class="fa-solid fa-eye"></i>
@@ -104,8 +128,8 @@
                 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
                     @foreach ($activities as $activity)
                         @php
-                            $activityIds = $exam->{$activity . '_activities'} ?? [];
-                            if (! is_array($activityIds) || count($activityIds) <= 0) {
+                            $activityIds = $activityIdsByType[$activity] ?? [];
+                            if (count($activityIds) <= 0) {
                                 continue;
                             }
                             $activityCount = count($activityIds);
@@ -113,7 +137,7 @@
 
                         <div class="col">
                             <div class="student-skill-card is-preview">
-                                <a href="{{ route('admin.exam-preview-type', ['exam' => $exam->id, 'type' => $activity]) }}"
+                                <a href="{{ route('admin.exam-preview-type', ['exam' => $exam->id, 'type' => $activity, 'level' => $previewLevelId ?: null]) }}"
                                     class="student-skill-card-link">
                                     <div class="student-skill-card-image">
                                         <img src="{{ asset('includes/images/' . $activity . '.jpg') }}"
@@ -152,8 +176,19 @@
                 <div class="skill-exam-alert skill-exam-alert-info">
                     <i class="fa-solid fa-inbox"></i>
                     <div>
-                        <strong>No activities assigned</strong>
-                        <p class="mb-0">This exam has no activities assigned yet. Please assign activities before previewing.</p>
+                        @if ($levels->isNotEmpty())
+                            {{-- The exam may well have activities, just none for this level. --}}
+                            <strong>Nothing assigned for this level</strong>
+                            <p class="mb-0">
+                                No activities are assigned to
+                                {{ $levels->firstWhere('id', (int) $previewLevelId)?->name ?? 'this level' }}
+                                yet, so a student on it would have nothing to sit. Assign activities for this
+                                level, or pick another level above.
+                            </p>
+                        @else
+                            <strong>No activities assigned</strong>
+                            <p class="mb-0">This exam has no activities assigned yet. Please assign activities before previewing.</p>
+                        @endif
                     </div>
                 </div>
             @endif

@@ -7,6 +7,7 @@ use App\Models\Result;
 use Livewire\Component;
 use App\Models\Activity;
 use App\Models\StudentExam;
+use App\Support\ExamActivityQuery;
 use App\Livewire\Concerns\RestrictsToAdminSchool;
 
 class ShowPaper extends Component
@@ -34,11 +35,15 @@ class ShowPaper extends Component
         }
         $exam = Exam::find($this->student_exam->exam_id);
 
-        if (!$exam || $exam->{$type . '_activities'} == []) {
+        // Mark only what this student was served: an exam built for several
+        // levels holds every level's activities in one list.
+        $acties = $exam
+            ? ExamActivityQuery::activityIdsForStudent($exam, $this->student_exam->Student, $type)
+            : [];
+
+        if (!$exam || $acties == []) {
             return redirect()->route('admin.attempted-exams');
         }
-
-        $acties = $exam->{$type . '_activities'};
         if (is_array($acties)) {
             foreach ($acties as $i => $act) {
                 $this->activities[$i] = Activity::where('id', $act)->with(['Question' => function ($query) {

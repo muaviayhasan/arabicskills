@@ -1,5 +1,5 @@
 <div class="student-skill-exams">
-    <x-std-header :title="'Exams'" />
+    <x-std-header :title="'Exams <span>الاختبارات</span>'" />
 
     <section class="student-info mt-4">
         <div class="container">
@@ -42,7 +42,7 @@
                             </div>
                             <div class="skill-exam-meta-item">
                                 <span class="label">Level</span>
-                                <span class="value">{{ \App\Support\ExamLevelHelper::levelNamesLabel($exam?->level_ids ?? []) }}</span>
+                                <span class="value">{{ $studentLevelName ?? 'Not set' }}</span>
                             </div>
                             <div class="skill-exam-meta-item">
                                 <span class="label">Scope</span>
@@ -76,6 +76,10 @@
                     $allAttempted = true;
                     $activities = ['reading', 'listening', 'writing', 'speaking', 'sentences_structures'];
                     foreach ($activities as $activity) {
+                        // A skill with nothing for this student's level is not theirs to sit.
+                        if (count($skillActivities[$activity] ?? []) <= 0) {
+                            continue;
+                        }
                         $activityStatus = $latestExam->{"{$activity}_status"}['status'] ?? 'unattempted';
                         if ($activityStatus != 'attempted') {
                             $allAttempted = false;
@@ -113,18 +117,15 @@
                 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
                     @foreach ($activities as $activity)
                         @php
-                            if (
-                                !isset($latestExam->Exam?->{$activity . '_activities'}) ||
-                                !is_array($latestExam->Exam?->{$activity . '_activities'}) ||
-                                count($latestExam->Exam?->{$activity . '_activities'}) <= 0
-                            ) {
+                            $activityIds = $skillActivities[$activity] ?? [];
+
+                            if (count($activityIds) <= 0) {
                                 continue;
                             }
 
                             $status = $latestExam->{$activity . '_status'}['status'] ?? 'unattempted';
                             $isClickable = $status === 'unattempted';
                             $hasMissingAnswers = false;
-                            $activityIds = $latestExam->Exam?->{$activity . '_activities'} ?? [];
 
                             if ($status === 'attempted' && is_array($activityIds) && count($activityIds)) {
                                 $activitiesModels = \App\Models\Activity::with([
