@@ -1,5 +1,5 @@
 <div>
-    <x-std-header :title="'Personal Information'" />
+    <x-std-header :title="'Personal Information <span>المعلومات الشخصية</span>'" />
     <section class="student-info mt-5">
         <div class="container">
             <div class="row">
