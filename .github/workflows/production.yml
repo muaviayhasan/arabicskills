@@ -1,0 +1,116 @@
+name: Deploy to Hostinger Production
+
+on:
+  push:
+    branches:
+      - main  # trigger only on main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+      HOST_NAME: ${{ secrets.HOSTINGER_HOST }}
+      USER_NAME: ${{ secrets.HOSTINGER_USER }}
+      SSH_PORT: 65002
+      REPO_URL: "git@github.com:${{ github.repository }}.git"
+      BRANCH: "main"
+      REMOTE_DIR: "/home/u478155822/domains/benchmark-arabicskilltest.com/backend"
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Setup SSH
+      - name: Setup SSH
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p $SSH_PORT -H $HOST_NAME >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          # Use actual path to private_key.pem
+          echo -e "Host hostinger-prod\n  HostName $HOST_NAME\n  Port $SSH_PORT\n  User $USER_NAME\n  IdentityFile $PWD/private_key.pem\n  ControlMaster auto\n  ControlPath ~/.ssh/control-%r@%h:%p\n  ControlPersist 600" >> ~/.ssh/config
+
+      # 3. Deploy via Git
+      - name: Deploy Code via Git Pull
+        run: |
+          ssh -F ~/.ssh/config hostinger-prod "REMOTE_DIR='$REMOTE_DIR' BRANCH='$BRANCH' REPO_URL='$REPO_URL' bash -se" << 'EOF'
+            set -euo pipefail
+
+            mkdir -p "$REMOTE_DIR"
+            cd "$REMOTE_DIR" || { echo "ERROR: Failed to cd into $REMOTE_DIR"; exit 1; }
+
+            pwd
+
+            ls -la
+            
+            if [ ! -d .git ]; then
+              /usr/bin/git clone -b "$BRANCH" "$REPO_URL" .
+            else
+              /usr/bin/git reset --hard
+              /usr/bin/git clean -fd
+              /usr/bin/git pull origin "$BRANCH"
+            fi
+
+            if [ ! -f "composer.lock" ]; then
+              echo "ERROR: composer.lock not found in $(pwd)"
+              exit 1
+            fi
+
+            /usr/local/bin/composer2 install --no-dev --optimize-autoloader --ignore-platform-reqs
+          EOF
+
+      # 4. Final Laravel commands
+      - name: Finalize Deployment
+        run: |
+          ssh -F ~/.ssh/config hostinger-prod "REMOTE_DIR='$REMOTE_DIR' bash -se" << 'EOF'
+            set -euo pipefail
+
+            mkdir -p "$REMOTE_DIR"
+            cd "$REMOTE_DIR" || { echo "ERROR: Failed to cd into $REMOTE_DIR"; exit 1; }
+
+            chmod -R 775 storage bootstrap/cache
+            /usr/bin/php artisan migrate --force
+            /usr/bin/php artisan storage:link
+            /usr/bin/php artisan optimize:clear
+
+            SOURCE_PUBLIC="$REMOTE_DIR/public"
+            WEBROOT="$REMOTE_DIR/../public_html"
+
+            if [ ! -d "$SOURCE_PUBLIC" ]; then
+              echo "ERROR: Source public directory not found: $SOURCE_PUBLIC"
+              exit 1
+            fi
+
+            mkdir -p "$WEBROOT"
+            cd "$WEBROOT"
+
+            if [ -f "$SOURCE_PUBLIC/.htaccess" ]; then
+              cp -f "$SOURCE_PUBLIC/.htaccess" "$WEBROOT/.htaccess"
+            else
+              echo "WARNING: $SOURCE_PUBLIC/.htaccess not found (skipping)"
+            fi
+
+            # Symlink everything in /public except .htaccess and index.php
+            find "$SOURCE_PUBLIC" -maxdepth 1 -mindepth 1 \
+              ! -name '.htaccess' \
+              ! -name 'index.php' \
+              -print0 \
+              | while IFS= read -r -d '' item; do
+                  base="$(basename "$item")"
+                  dest="$WEBROOT/$base"
+
+                  if [ -L "$dest" ] || [ -e "$dest" ]; then
+                    rm -rf "$dest"
+                  fi
+
+                  ln -s "$item" "$dest"
+                done
+
+            
+          EOF
