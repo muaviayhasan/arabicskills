@@ -13,6 +13,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
@@ -40,6 +41,18 @@ class ResultExports implements FromArray, WithHeadings, WithStyles
     private const INFO_HEADINGS = [
         'Student ID', 'Student Name', 'School', 'Section', 'Grade',
         'Grade Name', 'Gender', 'Nationality', 'SEN', 'G&T', 'Citizen',
+    ];
+
+    /**
+     * Heading fills, read off the client's own sheet: the eleven student
+     * columns in orange, then a colour per round so the rounds are told apart
+     * at a glance on a sheet this wide.
+     */
+    private const HEADING_FILLS = [
+        'info' => 'E37200',
+        1 => '444DCD',
+        2 => '808080',
+        3 => '2CC306',
     ];
 
     private const FILLS = [
@@ -278,14 +291,7 @@ class ResultExports implements FromArray, WithHeadings, WithStyles
         $lastColumn = Coordinate::stringFromColumnIndex($columnCount);
         $lastRow = $sheet->getHighestRow();
 
-        $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true);
-        $sheet->getStyle("A1:{$lastColumn}1")->getFill()->applyFromArray([
-            'fillType' => 'solid',
-            'color' => ['rgb' => 'c2e3c7'],
-        ]);
-        $sheet->getStyle("A1:{$lastColumn}1")->getAlignment()
-            ->setWrapText(true)
-            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $this->colourHeadings($sheet);
 
         $sheet->getStyle("A1:{$lastColumn}{$lastRow}")->applyFromArray([
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
@@ -301,6 +307,38 @@ class ResultExports implements FromArray, WithHeadings, WithStyles
         $this->colourJudgements($sheet, $lastRow);
 
         return [];
+    }
+
+    /**
+     * The heading row, block by block: the student columns, then one colour per
+     * round, each running from the round's level column through its Progress
+     * column.
+     */
+    private function colourHeadings(Worksheet $sheet): void
+    {
+        $infoColumns = count(self::INFO_HEADINGS);
+
+        $blocks = [[1, $infoColumns, self::HEADING_FILLS['info']]];
+
+        foreach (array_keys(MarkRanges::ROUNDS) as $index => $round) {
+            $start = $infoColumns + ($index * $this->blockWidth()) + 1;
+
+            $blocks[] = [$start, $start + $this->blockWidth() - 1, self::HEADING_FILLS[$round] ?? self::HEADING_FILLS['info']];
+        }
+
+        foreach ($blocks as [$from, $to, $rgb]) {
+            $range = Coordinate::stringFromColumnIndex($from).'1:'.Coordinate::stringFromColumnIndex($to).'1';
+
+            $sheet->getStyle($range)->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => $rgb]],
+                'alignment' => [
+                    'wrapText' => true,
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                ],
+            ]);
+        }
     }
 
     /** Judgment and expectation cells, filled the way their sheet is. */
