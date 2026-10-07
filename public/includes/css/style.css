@@ -51,16 +51,34 @@ body {
   overflow: hidden;
 }
 
+/* Sampled from the AST wordmark inside the photograph itself: #192152 average,
+   #101A4D most common, #1C2953 off a laptop lid. The old rgba(0,0,83,.878)
+   rendered as #1F1F68 over white, a different blue from the picture it framed. */
 .login-page .bg-img {
-  background-color: rgba(0, 0, 83, 0.8784313725);
+  background-color: #1a2254;
   position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The extra room at the foot is the fixed copyright bar, so the frame reads
+     as even all the way round rather than being clipped at the bottom. */
+  padding: 1.75rem 1.75rem 4.25rem;
 }
 
+/* The old rule sized the artwork to 90% and let its own white background fill
+   the panel. A photograph has no white background to lend, so it is inset into
+   the navy as a framed picture and cropped to fill, rather than floating at its
+   natural aspect with navy above and below it. */
 .login-page .bg-img img {
   position: relative;
-  width: 90%;
-  margin: 0 auto;
+  z-index: 1;
   display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 14px;
 }
 
 .login-page .bg-img::before {
@@ -97,6 +115,77 @@ body {
 .login-page .form-box .fp {
   text-decoration: none;
   color: #000053;
+}
+
+/* Below lg the two columns stack, so the photograph becomes a banner above the
+   form. The page has to be allowed to grow and scroll for that: the desktop
+   rules pin it to the viewport and hide the overflow, which would cut the form
+   off entirely, and the copyright bar is fixed, which would sit on top of it. */
+@media (max-width: 991.98px) {
+  .login-page {
+    height: auto;
+    overflow: visible;
+  }
+
+  .login-page .bg-img {
+    height: 220px;
+    padding: 0;
+  }
+
+  /* Full bleed at this size: a 28px frame around a 220px banner leaves too
+     little photograph to read. */
+  .login-page .bg-img img {
+    border-radius: 0;
+  }
+
+  /* Static, and stripped of its navy: inside the form column it sat directly
+     under the navy Login button, and two navy blocks in a row read as two
+     buttons. It is small print here, not a footer bar. */
+  .login-page .copyright {
+    position: static;
+    margin-top: 2rem;
+    padding: 0;
+    background-color: transparent;
+    color: #6b6b7e;
+    font-size: 0.8rem;
+  }
+
+  /* Stacked, the form was pinned to the top left of a column far wider than
+     itself, with empty space beside it and below. Centring the column in what
+     is left under the banner settles both. */
+  .login-form-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 220px);
+  }
+
+  .login-form-col .form-box {
+    width: 100%;
+    max-width: 26rem;
+    /* clears the mt-4 utility, which would push the centred block off-centre */
+    margin-top: 0 !important;
+  }
+
+  /* The 500px cap held the fields narrower than the block around them, so the
+     logo and heading overhung the inputs. */
+  .login-page .form-box .form-sec {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .login-page .bg-img {
+    height: 180px;
+  }
+
+  .login-form-col {
+    min-height: calc(100vh - 180px);
+  }
+
+  .login-page .form-box .logo {
+    width: 40%;
+  }
 }
 
 .page-title {
@@ -352,7 +441,7 @@ body {
 .copyright {
   position: fixed;
   bottom: 0;
-  background-color: #000053;
+  background-color: #1a2254;
   width: 100%;
   left: 0;
   text-align: center;

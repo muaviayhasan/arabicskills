@@ -1,12 +1,13 @@
 <section class="login-page">
     <div class="container-fluid p-0">
-        <div class="row row-cols-1 row-cols-md-2 gap-0">
-            <div class="col d-none d-md-block p-0">
+        <div class="row row-cols-1 row-cols-lg-2 g-0">
+            <div class="col p-0">
                 <div class="bg-img w-100">
-                    <img src="{{ asset('includes') }}/images/login-bg.jfif" width="100%" alt="">
+                    <img src="{{ asset('includes') }}/images/login-classroom.jpg"
+                        alt="Students sitting the Arabic Skill Benchmark Test in a classroom">
                 </div>
             </div>
-            <div class="col p-4 p-md-3">
+            <div class="col p-4 p-lg-3 login-form-col">
                 <div class="form-box mt-4 mt-lg-1 pt-0 pt-lg-2 position-relative">
                     <div class="logo">
                         <img src="{{ image('uploads/logo', config('options.logo'), 'dummy-logo.png') }}" alt="">
