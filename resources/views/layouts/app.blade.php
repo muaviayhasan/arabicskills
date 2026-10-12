@@ -17,30 +17,107 @@
 
 
     <style>
+        /* The reading passage, pinned while the student answers questions about it.
+           It reads as a panel held above the paper rather than a slab cutting
+           across it, and its text lines up with the questions underneath. */
         .activity-sticky-clone {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             z-index: 50;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 0;
             background-color: #000053;
+            background-image: linear-gradient(162deg, #1b1b6d 0%, #000053 48%, #000038 100%);
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.3);
 
-            padding: 0.5rem 1rem;
-
-            font-size: 1rem;
-            font-weight: 400;
-            /* color: #fff !important; */
-
+            padding: 1.1rem 1.25rem 1.25rem;
             margin: 0 !important;
 
-            max-height: 40vh;
+            max-height: 42vh;
             overflow-y: auto;
             overflow-x: hidden;
+            overscroll-behavior: contain;
         }
 
         .activity-sticky-clone * {
             color: #fff !important;
+        }
+
+        /* Same measure as the questions below, so the passage and the question
+           asked about it share one left edge instead of the passage running the
+           full width of the monitor. */
+        .activity-sticky-clone > div {
+            max-width: 58rem;
+            margin: 0 auto;
+            padding-inline-end: 2.75rem;
+            font-size: clamp(1rem, 0.95rem + 0.35vw, 1.18rem);
+            line-height: 2.05;
+        }
+
+        /* Q-1 keeps the marker it has in the paper, legible on navy. */
+        .activity-sticky-clone > div > span:first-child {
+            display: inline-block;
+            margin-inline-end: 0.75rem;
+            padding: 0.1rem 0.6rem;
+            background: rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+            font-size: 0.82rem !important;
+        }
+
+        /* Was a red square with Bootstrap's dark X on it, which barely read at
+           all against the navy. */
+        .activity-sticky-clone .sticky-close-btn {
+            position: fixed;
+            top: 0.75rem;
+            right: 0.9rem;
+            width: 2.1rem;
+            height: 2.1rem;
+            padding: 0;
+            background-color: rgba(255, 255, 255, 0.14);
+            border: 0;
+            border-radius: 50%;
+            opacity: 1;
+            z-index: 1;
+            transition: background-color 0.2s ease;
+        }
+
+        .activity-sticky-clone .sticky-close-btn:hover,
+        .activity-sticky-clone .sticky-close-btn:focus-visible {
+            background-color: rgba(255, 255, 255, 0.28);
+        }
+
+        .activity-sticky-clone .sticky-close-btn:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
+        }
+
+        /* A narrow, quiet scrollbar for long passages. */
+        .activity-sticky-clone::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .activity-sticky-clone::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.28);
+            border-radius: 999px;
+        }
+
+        @media (max-width: 575.98px) {
+            .activity-sticky-clone {
+                padding: 0.9rem 0.9rem 1rem;
+                max-height: 46vh;
+            }
+
+            .activity-sticky-clone > div {
+                padding-inline-end: 2.4rem;
+                line-height: 1.95;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .activity-sticky-clone .sticky-close-btn {
+                transition: none;
+            }
         }
 
         body {
@@ -310,10 +387,10 @@
 
                 const closeBtn = document.createElement("button");
 
-                closeBtn.classList.add("sticky-close-btn", "btn-close");
-
-                closeBtn.style.cssText =
-                    `position: absolute; top: 0.25rem; right: 0.5rem; background-color: red; cursor: Pointer;`;
+                closeBtn.classList.add("sticky-close-btn", "btn-close", "btn-close-white");
+                closeBtn.setAttribute("type", "button");
+                closeBtn.setAttribute("aria-label", "Hide the passage");
+                closeBtn.title = "Hide the passage";
 
                 stickyClone.appendChild(closeBtn);
 

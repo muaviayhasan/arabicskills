@@ -340,6 +340,79 @@ body {
   position: relative;
 }
 
+/* ─── Student exam questions ──────────────────────────────────────────
+   The form is a direct child of .row with no column, so as a flex child it
+   shrank to its content and settled against the left edge. That is what
+   reads as "not centred"; the fix is to let it fill the row and to centre
+   the content inside it.
+   ------------------------------------------------------------------- */
+.quiz .container > .row {
+  justify-content: center;
+}
+
+.quiz .container > .row > form {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+/* A readable measure. Fully vowelled Arabic needs size and leading, but a
+   line running the whole width of a laptop is hard to track back to. */
+.quiz .quiz-items {
+  max-width: 58rem;
+  margin: 0 auto;
+  padding: 0 0.75rem 2rem;
+}
+
+/* The passage: the most prominent thing on the screen. */
+.quiz .activity-paragraph {
+  align-items: flex-start;
+  gap: 0.9rem;
+  margin-bottom: 1.75rem;
+  font-size: clamp(1.1rem, 1rem + 0.45vw, 1.4rem);
+  line-height: 2.15;
+}
+
+/* Q-1 as a quiet marker rather than red text competing with the Arabic. */
+.quiz .activity-paragraph > span:first-child {
+  flex: 0 0 auto;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  background: rgba(0, 0, 83, 0.07);
+  border-radius: 999px;
+  color: #000053 !important;
+  font-size: 0.85rem !important;
+}
+
+.quiz .activity-paragraph > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Answers were pushed 3rem right of the passage by ms-5, which left the
+   block visibly off centre. They line up with it now. */
+.quiz .quiz-answers {
+  margin-inline-start: 0;
+}
+
+.quiz .quiz-answers .quiz-box {
+  padding-block: 1.25rem;
+}
+
+@media (max-width: 575.98px) {
+  .quiz {
+    border-width: 4px;
+  }
+
+  .quiz .quiz-items {
+    padding-inline: 0.25rem;
+  }
+
+  .quiz .activity-paragraph {
+    gap: 0.5rem;
+    line-height: 1.95;
+  }
+}
+
 .quiz .radio-btn h5 {
   margin-left: 0px;
   text-align: left;

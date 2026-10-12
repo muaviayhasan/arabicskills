@@ -3,8 +3,8 @@
         <h4 class="m-0 fs-5 d-flex">
             <span class="text-danger fs-5 me-3 fw-bold"><i class="fa-solid fa-arrow-right"></i></span>
             <div>
-                <p class="mb-0" dir="rtl" style="text-align: right;"><strong>حدّد العبارات الصحيحة (صح) والعبارات
-                        الخاطئة (خط) بالملائمة.</strong></p>
+                {{-- Removed for the same reason as in MCQs: the teacher writes the
+                     instruction, so a fixed one here duplicated it. --}}
                 {!! $question->question !!}
             </div>
         </h4>

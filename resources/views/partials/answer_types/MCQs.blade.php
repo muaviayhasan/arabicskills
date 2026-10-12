@@ -3,7 +3,9 @@
         <h4 class="fs-5 d-flex m-0">
             <span class="text-danger fs-5 fw-bold me-3"><i class="fa-solid fa-arrow-right"></i></span>
             <div>
-                <p class="mb-0" dir="rtl" style="text-align: right;"><strong>اختر الإجابة الصحيحة</strong></p>
+                {{-- The instruction line is written by the teacher as part of the
+                     question. A fixed one here appeared above it, so every
+                     question carried two instructions. --}}
                 {!! $question->question !!}
             </div>
         </h4>

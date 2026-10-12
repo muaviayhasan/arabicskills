@@ -25,7 +25,7 @@
                                         style="max-width: 100%;" height="300px">
                                 </div>
                             @endif
-                            <div class="ms-5">
+                            <div class="quiz-answers">
                                 @forelse ($activity->Question as $i => $question)
                                     @include("partials.answer_types.{$question->type}", [
                                         'question' => $question,

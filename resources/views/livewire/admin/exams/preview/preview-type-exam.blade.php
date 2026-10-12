@@ -29,7 +29,7 @@
                                             style="max-width: 100%;" height="300px">
                                     </div>
                                 @endif
-                                <div class="ms-5">
+                                <div class="quiz-answers">
                                     @forelse ($activity->Question as $qi => $question)
                                         @include("partials.answer_types.{$question->type}", [
                                             'question' => $question,
@@ -63,7 +63,7 @@
                                             style="max-width: 100%;" height="300px">
                                     </div>
                                 @endif
-                                <div class="ms-5">
+                                <div class="quiz-answers">
                                     @forelse ($activity->Question as $qi => $question)
                                         @include("partials.answer_types.{$question->type}", [
                                             'question' => $question,
@@ -80,7 +80,7 @@
 
                         @case('writing')
                             @forelse ($activities as $i => $activity)
-                                <div class="ms-5 mt-3">
+                                <div class="quiz-answers mt-3">
                                     <h4 class="activity-paragraph question my-4 d-flex" tabindex="0">
                                         <span class="text-danger fs-5 me-3 fw-bold">Q-{{ $i + 1 }}</span>
                                         <div>{!! $activity->activity !!}</div>
@@ -155,7 +155,7 @@
                                             style="max-width: 100%;" height="300px">
                                     </div>
                                 @endif
-                                <div class="ms-5">
+                                <div class="quiz-answers">
                                     @forelse ($activity->Question as $qi => $question)
                                         @include("partials.answer_types.{$question->type}", [
                                             'question' => $question,
