@@ -9,11 +9,34 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class StudentsImport implements ToArray, WithHeadingRow
 {
+    /**
+     * Columns the import cannot work without, as they are written in the
+     * template, against the keys a heading slugs down to. A heading matches if
+     * any one of its keys is present, so older templates that say "Section"
+     * rather than "Division" still load.
+     *
+     * @var array<string, list<string>>
+     */
+    public const REQUIRED_COLUMNS = [
+        'Student Name' => ['student_name'],
+        'Registration' => ['registration'],
+        'School Name' => ['school_name'],
+        'Grade/year' => ['gradeyear', 'grade_year', 'grade'],
+        'Level' => ['level'],
+    ];
+
     protected $students = [];
+
+    /** @var list<string> headings as they came out of the file */
+    protected array $headings = [];
 
     public function array(array $record)
     {
         foreach ($record as $i => $row) {
+            if ($this->headings === [] && is_array($row)) {
+                $this->headings = array_keys($row);
+            }
+
             // Excel keeps rows that were formatted or merely touched, so a file
             // regularly carries empty rows past the last student. Read as
             // students they arrive with every field blank, which then reads as a
@@ -66,6 +89,37 @@ class StudentsImport implements ToArray, WithHeadingRow
         }
 
         return true;
+    }
+
+    /**
+     * The headings the file actually had, slugged the way the reader slugs them.
+     *
+     * @return list<string>
+     */
+    public function getHeadings(): array
+    {
+        return $this->headings;
+    }
+
+    /**
+     * Required columns the file does not have, by their template names. A file
+     * missing one of these used to import anyway, reading the column as blank,
+     * which failed later as a confusing row error rather than saying the column
+     * was absent.
+     *
+     * @return list<string>
+     */
+    public function missingColumns(): array
+    {
+        $missing = [];
+
+        foreach (self::REQUIRED_COLUMNS as $label => $keys) {
+            if (array_intersect($keys, $this->headings) === []) {
+                $missing[] = $label;
+            }
+        }
+
+        return $missing;
     }
 
     public function getStudents()

@@ -54,6 +54,19 @@ class ImportStudent extends Component
             $import = new StudentsImport;
             Excel::import($import, $this->file);
 
+            // Checked before the rows, so a file with the wrong columns says so
+            // plainly instead of failing later as a row error about blank data.
+            if ($missing = $import->missingColumns()) {
+                $this->students = [];
+
+                throw new Exception(
+                    'The file is missing '.(count($missing) === 1 ? 'this column' : 'these columns').': '
+                    .implode(', ', $missing).'. '
+                    .'Every file needs: '.implode(', ', array_keys(StudentsImport::REQUIRED_COLUMNS)).'. '
+                    .'Download the sample file and match its column names.'
+                );
+            }
+
             $importedStudents = $import->getStudents();
             $this->students = $importedStudents;
 
@@ -221,7 +234,39 @@ class ImportStudent extends Component
                 $legacyUsername = StudentUsername::legacy($registration);
                 $newUsername = StudentUsername::forNewStudent($registration, $importYear);
 
-                $existing = Student::whereIn('user_name', [$legacyUsername, $newUsername])->first();
+                // Match on the registration number within the selected school.
+                // Matching on the username meant the lookup depended on the
+                // academic year it was built from, so re-importing the same file
+                // in a later year matched nothing and created a second copy of
+                // every student. withTrashed() so an archived student is revived
+                // rather than duplicated.
+                $existing = Student::withTrashed()
+                    ->where('school_id', $this->school_id)
+                    ->where('registration', $registration)
+                    ->first();
+
+                // A registration already used by another school cannot be taken
+                // over: the username is unique system-wide, so writing it here
+                // would move that child out of their own school. Two schools
+                // numbering their pupils independently is the usual cause.
+                if (! $existing) {
+                    $clash = Student::withTrashed()
+                        ->whereIn('user_name', [$legacyUsername, $newUsername])
+                        ->orWhere(function ($query) use ($registration) {
+                            $query->where('registration', $registration)
+                                ->where('school_id', '!=', $this->school_id);
+                        })
+                        ->with('School')
+                        ->first();
+
+                    if ($clash) {
+                        $errors[] = "Row {$row}: registration {$registration} already belongs to "
+                            .($clash->name ?: 'another student').' at '
+                            .($clash->School?->name ?: 'another school').'. Give this student a different number.';
+
+                        continue;
+                    }
+                }
 
                 $studentData = [
                     'name' => $student['name'],
@@ -240,6 +285,10 @@ class ImportStudent extends Component
                 $studentData += array_filter($demographics['values'], fn ($value) => $value !== null);
 
                 if ($existing) {
+                    if ($existing->trashed()) {
+                        $existing->restore();
+                    }
+
                     $existing->update($studentData);
                     Exam::reconcileStudentExams($existing->fresh());
                 } else {
