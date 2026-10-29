@@ -632,12 +632,13 @@ body {
 
 .clickable-word.in-dropzone {
   position: relative;
-  padding-right: 30px !important;
+  /* logical, so the gap for the remove button follows the reading direction */
+  padding-inline-end: 30px !important;
 }
 
 .remove-word-btn {
   position: absolute;
-  right: 5px;
+  inset-inline-end: 5px;
   top: 50%;
   transform: translateY(-50%);
   background-color: #dc3545;

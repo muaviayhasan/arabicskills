@@ -13,17 +13,28 @@
 
     </div>
     @php
-        $words = explode(',', strip_tags($question->question));
+        $raw = strip_tags($question->question);
+        $words = explode(',', $raw);
         shuffle($words);
+
+        // Arabic is read right to left, so the first word chosen belongs on the
+        // right and each next one to its left. The activity's lang column says
+        // "english" even on Arabic papers, so the direction is taken from the
+        // words themselves rather than trusted from the record.
+        $dir = preg_match('/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFF}]/u', $raw)
+            ? 'rtl'
+            : 'ltr';
     @endphp
     <div class="row">
-        <h5 class="wordContainer" data-input="question_{{ $question->id }}_answer" data-question-id="{{ $question->id }}">
+        <h5 class="wordContainer" dir="{{ $dir }}" data-input="question_{{ $question->id }}_answer"
+            data-question-id="{{ $question->id }}">
             @foreach ($words as $w)
                 <span class="word clickable-word" data-question-id="{{ $question->id }}">{{ $w }}</span>
             @endforeach
         </h5>
 
-        <div id="dropzone_{{ $question->id }}" class="dropzone mt-3" data-question-id="{{ $question->id }}">
+        <div id="dropzone_{{ $question->id }}" class="dropzone mt-3" dir="{{ $dir }}"
+            data-question-id="{{ $question->id }}">
             <div class="dropzone-placeholder float-start">Selected words will appear here in order</div>
         </div>
 
