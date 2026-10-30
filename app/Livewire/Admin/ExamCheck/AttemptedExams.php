@@ -11,6 +11,8 @@ use App\Models\Level;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\StudentExam;
+use App\Support\ExamSkillStatus;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
@@ -194,6 +196,137 @@ class AttemptedExams extends Component
                 }
             });
 
+    }
+
+    /**
+     * The exam behind a row, as this admin is allowed to see it. An admin tied
+     * to one school must not reach another school's student by id.
+     */
+    private function findReopenableExam(int $studentExamId): ?StudentExam
+    {
+        return StudentExam::query()
+            ->when($this->currentAdminSchoolId() !== null, function ($query) {
+                $query->whereRelation('Exam', 'school_id', $this->currentAdminSchoolId());
+            })
+            ->where('checked', false)
+            ->with(['Student', 'Exam'])
+            ->withCount('TakeExam')
+            ->find($studentExamId);
+    }
+
+    /**
+     * The skills of one row an admin can hand back to the student.
+     *
+     * @return array<string, string>
+     */
+    public function reopenableSkills(StudentExam $exam): array
+    {
+        return ExamSkillStatus::reopenableSkills($exam, ($exam->take_exam_count ?? 0) > 0);
+    }
+
+    public function confirmReopen($studentExamId)
+    {
+        if (! getPermissions('results', 'edit')) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'error',
+                title: 'You do not have permission to reopen an exam.'
+            );
+
+            return;
+        }
+
+        $exam = $this->findReopenableExam((int) $studentExamId);
+
+        if (! $exam) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'error',
+                title: 'That exam is no longer on this list.'
+            );
+
+            return;
+        }
+
+        $skills = $this->reopenableSkills($exam);
+
+        if ($skills === []) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'info',
+                title: 'Nothing to reopen',
+                text: 'Every skill on this exam is either still open to the student or already answered. An answered skill is reopened one at a time from the exam details.'
+            );
+
+            return;
+        }
+
+        $student = $exam->Student?->name ?: 'this student';
+        $text = implode(', ', $skills).' will be unlocked for '.$student
+            .'. The clock starts again from zero when they open each one, and anything they have already answered is kept.';
+
+        if ($exam->Exam?->status !== 'active') {
+            $text .= ' The exam itself is '.($exam->Exam?->status ?? 'not set')
+                .', so they still cannot sit it until the exam is set back to active.';
+        }
+
+        $this->dispatch(
+            'confirmReopen',
+            title: 'Reopen this exam?',
+            text: $text,
+            id: $exam->id,
+            emitBack: 'doReopenExam',
+            confirmButtonText: 'Yes, reopen',
+        );
+    }
+
+    #[On('doReopenExam')]
+    public function reopen($id)
+    {
+        if (! getPermissions('results', 'edit')) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'error',
+                title: 'You do not have permission to reopen an exam.'
+            );
+
+            return;
+        }
+
+        $exam = $this->findReopenableExam((int) $id);
+
+        if (! $exam) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'error',
+                title: 'That exam is no longer on this list.'
+            );
+
+            return;
+        }
+
+        $skills = $this->reopenableSkills($exam);
+
+        if ($skills === []) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'info',
+                title: 'Nothing to reopen'
+            );
+
+            return;
+        }
+
+        // Cleared through the query builder so the column holds a real null,
+        // the state a skill is in before it is ever started.
+        StudentExam::where('id', $exam->id)->update(array_fill_keys(array_keys($skills), null));
+
+        $this->dispatch(
+            'swal:alert',
+            icon: 'success',
+            title: 'Exam reopened',
+            text: implode(', ', $skills).' can be sat again by '.($exam->Student?->name ?: 'the student').'.'
+        );
     }
 
     public function exportSearched()

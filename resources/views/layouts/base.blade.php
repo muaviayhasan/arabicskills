@@ -439,7 +439,7 @@
     <Script src="{{ asset('assets/js/jquery-ui.min.js') }}"></Script>
 
     <script src="{{ asset('assets/libs/sweetalert2/sweetalert2.all.min.js') }}"></script>
-    <script src="{{ asset('assets/js/alerts.js') }}"></script>
+    <script src="{{ asset('assets/js/alerts.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('assets/js/question_banks.js') }}"></script>
 
     <!-- include summernote css/js -->

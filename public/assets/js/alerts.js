@@ -307,6 +307,38 @@ window.addEventListener('confirmDelete', function (e) {
     });
 });
 
+// confirm reopening a student's exam. Unlike confirmDelete this one takes its
+// wording from the component, because what is about to be unlocked differs
+// from one student to the next.
+window.addEventListener('confirmReopen', function (e) {
+    Swal.fire({
+        title: e.detail.title ?? 'Reopen this exam?',
+        text: e.detail.text,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: e.detail.confirmButtonText ?? 'Yes, reopen',
+        cancelButtonText: 'Cancel',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Livewire.dispatch(e.detail.emitBack, { id: e.detail.id });
+
+            Swal.fire({
+                html: `<div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+                    </div>
+                    <p class="mt-2">Please wait...</p>`,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                allowEnterKey: false,
+                showConfirmButton: false,
+            });
+        }
+    }).catch(err => {
+        console.log(err);
+    });
+});
+
 // goEither
 window.addEventListener('goEither', function (e) {
     Swal.fire({

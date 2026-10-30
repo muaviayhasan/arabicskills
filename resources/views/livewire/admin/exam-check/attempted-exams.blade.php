@@ -1,4 +1,10 @@
 <div>
+    @php
+        // Reopening hands an exam back to a student, so it follows the same
+        // permission as checking one.
+        $canReopen = getPermissions('results', 'edit');
+    @endphp
+
     <!-- Search Filters -->
     <div class="row mb-3">
         <div class="col-12">
@@ -177,13 +183,27 @@
                                         </td>
 
                                         <td>
-                                            @if (($exam->take_exam_count ?? 0) > 0)
-                                                <a href="{{ route('admin.student-exam.details', $exam->id) }}"
-                                                    class="btn btn-danger">
-                                                    Details</a>
-                                            @else
-                                                <span class="badge bg-secondary">Absent</span>
-                                            @endif
+                                            @php
+                                                $reopenable = $canReopen ? $this->reopenableSkills($exam) : [];
+                                            @endphp
+                                            <div class="d-flex flex-column align-items-center gap-2">
+                                                @if (($exam->take_exam_count ?? 0) > 0)
+                                                    <a href="{{ route('admin.student-exam.details', $exam->id) }}"
+                                                        class="btn btn-danger">
+                                                        Details</a>
+                                                @else
+                                                    <span class="badge bg-secondary">Absent</span>
+                                                @endif
+
+                                                @if ($reopenable)
+                                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                                        wire:click="confirmReopen({{ $exam->id }})"
+                                                        wire:loading.attr="disabled" wire:target="confirmReopen"
+                                                        title="Unlock {{ implode(', ', $reopenable) }} so the student can sit {{ count($reopenable) === 1 ? 'it' : 'them' }} again">
+                                                        <i class="bx bx-lock-open-alt"></i> Reopen
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
