@@ -1,72 +1,99 @@
-<div>
-    <div class="row justify-content-center my-auto">
-        <div class="col-md-8 col-lg-6 col-xl-5">
+<div class="ast-auth__card">
 
-            <div class="mb-4 pb-2">
-                <a href="{{ route('admin.dashboard') }}" class="d-block auth-logo">
-                    <img src="{{ image('uploads/logo', config('options.logo'), 'dummy-logo.png') }}" alt=""
-                        height="30" class="auth-logo-dark me-start">
-                    <img src="{{ image('uploads/logo', config('options.logo'), 'dummy-logo.png') }}" alt=""
-                        height="30" class="auth-logo-light me-start">
-                </a>
+    <span class="ast-auth__badge">
+        <img src="{{ image('uploads/logo', config('options.logo'), 'dummy-logo.png') }}"
+            alt="{{ config('options.web_name', 'Arabic Skill Benchmark Test') }}" width="500" height="216">
+    </span>
+
+    <p class="ast-auth__eyebrow">Admin portal <span class="ar" lang="ar">بوابة الإدارة</span></p>
+    <h1 class="ast-auth__heading">Sign in to AST</h1>
+    <p class="ast-auth__sub">Manage schools, exams and results.</p>
+
+    <div class="ast-auth__rule" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0l1.8 3.1L13.2 2l-.8 3.5 3.6.5-2.8 2.2 2.8 2.2-3.6.5.8 3.5-3.4-1.1L8 16l-1.8-3.1L2.8 14l.8-3.5L0 10l2.8-2.2L0 5.6l3.6-.5L2.8 2l3.4 1.1z" />
+        </svg>
+    </div>
+
+    @if ($failure)
+        <p class="ast-auth__alert" role="alert">{{ $failure }}</p>
+    @endif
+
+    <form wire:submit.prevent="login" x-data="{ reveal: false }">
+
+        <div class="ast-auth__field">
+            <label class="ast-auth__label" for="email">Email</label>
+            <div class="ast-auth__control">
+                <span class="ast-auth__lead">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <path d="m2 7 10 6 10-6" />
+                    </svg>
+                </span>
+                <input wire:model.defer="email" type="email" id="email" autocomplete="username"
+                    class="ast-auth__input" placeholder="name@school.ae" autofocus>
             </div>
+            @error('email')
+                <span class="ast-auth__error" role="alert">{{ $message }}</span>
+            @enderror
+        </div>
 
-            <div class="card">
-                <div class="card-body p-4">
-                    <div class="text-center mt-2">
-                        <h5>Admin Login Portal</h5>
-                        <p class="text-muted">Login to continue to {{ config('options.web_name', 'Sarhad Premium') }}
-                        </p>
-                    </div>
-                    <div class="p-2 mt-4">
-                        <form wire:submit.prevent="login">
-
-                            <div class="mb-3">
-                                <label class="form-label" for="username">Username</label>
-                                <div class="position-relative input-custom-icon">
-                                    <input wire:model.defer="email" type="text" class="form-control" id="username"
-                                        placeholder="Enter email">
-                                    <span class="bx bx-user"></span>
-                                </div>
-                                @error('email')
-                                    <span class="text-danger">{{ $message }}</span>
-                                @enderror
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="password-input">Password</label>
-                                <div class="position-relative auth-pass-inputgroup input-custom-icon">
-                                    <span class="bx bx-lock-alt"></span>
-                                    <input wire:model.defer="password" type="{{ $showPass ? 'password' : 'text' }}"
-                                        class="form-control" id="password-input" placeholder="Enter password">
-                                    <button wire:click.prevent="$toggle('showPass')" type="button"
-                                        class="btn btn-link position-absolute h-100 end-0 top-0" id="password-addon">
-                                        <i class="mdi mdi-eye-outline font-size-18 text-muted"></i>
-                                    </button>
-                                </div>
-                                @error('password')
-                                    <span class="text-danger">{{ $message }}</span>
-                                @enderror
-                            </div>
-
-                            <div class="form-check py-1">
-                                <input type="checkbox" class="form-check-input" id="auth-remember-check">
-                                <label class="form-check-label" for="auth-remember-check">Remember
-                                    me</label>
-                            </div>
-
-                            <div class="mt-3">
-                                <button class="btn btn-primary w-100 waves-effect waves-light" type="submit">
-                                    <div wire:loading wire:target="login">
-                                        <i class="bx bx-loader bx-spin font-size-16 align-middle me-2"></i>
-                                    </div> Log
-                                    In
-                                </button>
-                            </div>
-
-                        </form>
-                    </div>
-                </div>
+        <div class="ast-auth__field">
+            <label class="ast-auth__label" for="password">Password</label>
+            <div class="ast-auth__control">
+                <span class="ast-auth__lead">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="4" y="10" width="16" height="11" rx="2" />
+                        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                    </svg>
+                </span>
+                {{-- Revealed in the browser: the password never goes to the server to be looked at. --}}
+                <input wire:model.defer="password" type="password" x-bind:type="reveal ? 'text' : 'password'"
+                    id="password" autocomplete="current-password"
+                    class="ast-auth__input ast-auth__input--password" placeholder="Enter your password">
+                {{-- Both icons are drawn and CSS picks one off the button's class.
+                     x-show sets a style on the element, which an SVG root does not
+                     honour here; a class on the button does. --}}
+                <button type="button" class="ast-auth__peek" x-on:click="reveal = !reveal"
+                    x-bind:class="reveal && 'is-revealed'" x-bind:aria-pressed="reveal"
+                    x-bind:aria-label="reveal ? 'Hide password' : 'Show password'">
+                    <svg class="ast-auth__peek-on" width="19" height="19" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z" />
+                        <circle cx="12" cy="12" r="3.2" />
+                    </svg>
+                    <svg class="ast-auth__peek-off" width="19" height="19" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z" />
+                        <circle cx="12" cy="12" r="3.2" />
+                        <path d="m3 3 18 18" />
+                    </svg>
+                </button>
             </div>
-        </div><!-- end col -->
-    </div><!-- end row -->
+            @error('password')
+                <span class="ast-auth__error" role="alert">{{ $message }}</span>
+            @enderror
+        </div>
+
+        <button type="submit" class="ast-auth__submit" wire:loading.attr="disabled" wire:target="login">
+            <span wire:loading wire:target="login" aria-hidden="true">
+                <span class="ast-auth__spinner"></span>
+            </span>
+            Sign in
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14m-6-7 7 7-7 7" />
+            </svg>
+        </button>
+
+    </form>
+
+    <p class="ast-auth__foot">
+        Forgot your password? Ask another admin to set a new one for you from the Admins page.
+    </p>
+
 </div>

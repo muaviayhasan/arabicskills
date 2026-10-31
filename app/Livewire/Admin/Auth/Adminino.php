@@ -8,11 +8,20 @@ use Stevebauman\Location\Facades\Location;
 
 class Adminino extends Component
 {
-    public $showPass = true;
     public $email;
     public $password;
+
+    /**
+     * Shown above the form when the credentials are refused. It sits with the
+     * fields rather than in a dialog, so there is nothing to dismiss before
+     * typing again.
+     */
+    public ?string $failure = null;
+
     public function login()
     {
+        $this->failure = null;
+
         $this->validate([
             'email' => 'required|email',
             'password' => "required"
@@ -37,26 +46,17 @@ class Adminino extends Component
                 'path' => '/adminino',
                 'username' => $auth->email,
             ]);
-            $this->dispatch(
-                'swal:alert',
-                icon: 'success',
-                title: 'Success',
-                text: 'Login successfully!',
-                url: route('admin.dashboard')
-            );
-        } else
 
-            $this->dispatch(
-                'swal:alert',
-                icon: 'error',
-                title: 'Failed',
-                text: 'Login failed! Check your email Password.'
-            );
+            return redirect()->route('admin.dashboard');
+        }
+
+        $this->reset('password');
+        $this->failure = 'We could not sign you in. Check the email address and password, then try again.';
     }
     public function render()
     {
         return view('livewire.admin.auth.adminino')->layout('layouts.auth-base')->layoutData([
-            'title' => 'Adminino',
+            'title' => 'Sign in',
         ]);
     }
 }

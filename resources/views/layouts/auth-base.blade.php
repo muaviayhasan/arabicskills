@@ -3,88 +3,46 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Login</title>
+    <title>{{ $title ?? 'Sign in' }} · {{ config('options.web_name', 'AST') }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta content="Premium Multipurpose Admin & Dashboard Template" name="description" />
-    <meta content="Themesdesign" name="author" />
-    <!-- App favicon -->
+    <meta content="Sign in to the Arabic Skill Benchmark Test administration console." name="description" />
+    <meta name="robots" content="noindex, nofollow" />
     <link rel="shortcut icon" href="{{ asset('assets') }}/images/favicon.ico">
 
-    <!-- Bootstrap Css -->
-    <link href="{{ asset('assets') }}/css/bootstrap.min.css" id="bootstrap-style" rel="stylesheet" type="text/css" />
-    <!-- Icons Css -->
-    <link href="{{ asset('assets') }}/css/icons.min.css" rel="stylesheet" type="text/css" />
-    <!-- App Css-->
-    <link href="{{ asset('assets') }}/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
     {{--
-    <link rel="stylesheet" href=""> --}}
+        Deliberately not the dashboard theme. Bootstrap, app.min.css and the
+        icon fonts together weigh about 770KB and this page used none of it:
+        auth-ast.css stands alone and the few icons are inline SVG.
+    --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style"
+        href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Vazirmatn:wght@400;500;600&display=swap">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Vazirmatn:wght@400;500;600&display=swap">
+
+    {{-- Suppressed: a missing stylesheet should leave the login plain, never 500. --}}
+    <link rel="stylesheet"
+        href="{{ asset('assets/css/auth-ast.css') }}?v={{ @filemtime(public_path('assets/css/auth-ast.css')) ?: 1 }}">
+
     @livewireStyles
 </head>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..500&display=swap" rel="stylesheet">
-
-<style>
-    * {
-        font-family: "Vazirmatn", sans-serif;
-    }
-</style>
-
 <body>
 
+    <div class="ast-auth">
 
-    <!-- <body data-layout="horizontal"> -->
+        <div class="ast-auth__shell">
+            {{ $slot }}
+        </div>
 
-    <div class="authentication-bg min-vh-100">
-        <div class="bg-overlay bg-light"></div>
-        <div class="container">
-            <div class="d-flex flex-column min-vh-100 px-3 pt-4">
-                {{ $slot }}
-            </div>
-        </div><!-- end container -->
+        <p class="ast-auth__name">
+            <span class="ast-auth__name-en">Arabic Skill Benchmark Test</span>
+            <span class="ast-auth__name-ar" lang="ar">اختبار مهارات اللغة العربية المعياري</span>
+        </p>
+
     </div>
-    <!-- end authentication section -->
 
-    <!-- JAVASCRIPT -->
-    <script>
-        window.addEventListener('swal:loginMessage', function(e) {
-            swal.fire({
-                icon: e.detail.icon,
-                title: e.detail.title,
-                text: e.detail.text,
-                background: e.detail.bg ?? '#fff',
-                color: e.detail.cl ?? '#000',
-            }).then(() => {
-                if (e.detail.url) {
-                    window.location.href = e.detail.url;
-                }
-                if (e.detail.modal) {
-                    $(e.detail.modal).modal('hide');
-                }
-            });
-        });
-    </script>
-    <script src="{{ asset('assets') }}/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ asset('assets') }}/libs/metismenujs/metismenujs.min.js"></script>
-    <script src="{{ asset('assets') }}/libs/simplebar/simplebar.min.js"></script>
-    <script src="{{ asset('assets') }}/libs/eva-icons/eva.min.js"></script>
-    <script src="{{ asset('assets/libs/sweetalert2/sweetalert2.all.min.js') }}"></script>
-
-    <script>
-        // simple alert
-        window.addEventListener('swal:alert', function(e) {
-            swal.fire({
-                icon: e.detail.icon,
-                title: e.detail.title,
-                text: e.detail.text,
-                background: e.detail.bg ?? '#fff',
-                color: e.detail.cl ?? '#000',
-            });
-            if (e.detail.url)
-                window.location.href = e.detail.url;
-        });
-    </script>
     @livewireScripts
 
 </body>
