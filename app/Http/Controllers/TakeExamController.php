@@ -2,311 +2,304 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Question;
 use App\Models\StudentExam;
 use App\Models\TakeExam;
 use App\Support\ExamSkillStatus;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class TakeExamController extends Controller
 {
-    public function saveSentencesStructuresExam(Request $request)
+    /**
+     * take_exams.type is a MySQL enum and the session runs in strict mode, so
+     * a value outside this list does not coerce, it errors, and the rollback
+     * takes the whole paper with it. The old per-skill defaults ('reading',
+     * 'listening', 'sentences_structures') are not enum members, so an answer
+     * arriving without a type would have failed the submit; nothing in
+     * take_exams carries those values, so no client has ever done it.
+     */
+    private const ANSWER_TYPES = [
+        'MCQs', 'true-false', 'blanks', 'typing',
+        'rearrange', 'match', 'match_words', 'writing', 'speaking',
+    ];
+
+    public function saveReadExam(Request $request): JsonResponse
     {
+        return $this->save($request, 'reading_status');
+    }
+
+    public function saveListenExam(Request $request): JsonResponse
+    {
+        return $this->save($request, 'listening_status');
+    }
+
+    public function saveSentencesStructuresExam(Request $request): JsonResponse
+    {
+        return $this->save($request, 'sentences_structures_status');
+    }
+
+    public function saveWritingExam(Request $request): JsonResponse
+    {
+        return $this->save($request, 'writing_status', $this->writingAnswer());
+    }
+
+    public function saveSpeakingExam(Request $request): JsonResponse
+    {
+        return $this->save($request, 'speaking_status', $this->speakingAnswer());
+    }
+
+    /**
+     * The attempt this submission is for.
+     *
+     * exam_id arrives as a hidden field, so it is whatever the browser sends.
+     * Reading it straight into find() meant a student could post answers
+     * against somebody else's attempt and mark their paper submitted, and a
+     * stale or missing id returned null, whereupon reading a status off it
+     * raised an Error rather than an Exception: not caught, no rollback, a 500
+     * instead of json, and the paper lost behind "an unexpected error".
+     */
+    private function resolveAttempt(Request $request): ?StudentExam
+    {
+        $id = $request->input('exam_id');
+
+        if (! is_numeric($id)) {
+            return null;
+        }
+
+        return StudentExam::query()
+            ->whereKey((int) $id)
+            ->where('student_id', auth()->guard('web')->id())
+            ->where('checked', false)
+            ->first();
+    }
+
+    /**
+     * Shared submit flow: resolve the attempt, write the answers, mark the
+     * skill attempted.
+     *
+     * @param  (callable(Request, int|string, array<string, mixed>): array{answer: mixed, type: string|null})|null  $prepare
+     */
+    private function save(Request $request, string $statusColumn, ?callable $prepare = null): JsonResponse
+    {
+        // Outside the try: a 404 raised inside it would be caught as an
+        // Exception and returned as a 500.
+        $attempt = $this->resolveAttempt($request);
+
+        if ($attempt === null) {
+            return response()->json([
+                'message' => 'This exam is no longer open for submission. Please reload the page.',
+            ], 404);
+        }
+
+        $storedPaths = [];
 
         try {
             DB::beginTransaction();
-            $student_exam = StudentExam::find($request->exam_id);
-            $time = $student_exam->sentences_structures_status;
-            $answers = $request->answer ?? [];
-            foreach ($answers as $index => $ans) {
-                TakeExam::updateOrCreate(
-                    [
-                        'student_exam_id' => $request->exam_id,
-                        'question_id' => $index,
-                        'student_id' => auth()->user()->id,
-                    ],
-                    [
-                        'answer' => $ans['answer'] ?? '',
-                        'type' => $ans['type'] ?? 'sentences_structures',
-                    ]
-                );
+
+            $prepared = [];
+
+            foreach ($request->input('answer') ?? [] as $questionId => $answer) {
+                $answer = is_array($answer) ? $answer : ['answer' => $answer];
+
+                $prepared[$questionId] = $prepare === null
+                    ? ['answer' => $answer['answer'] ?? '', 'type' => $answer['type'] ?? null]
+                    : $prepare($request, $questionId, $answer, $storedPaths);
             }
 
-            $time['status'] = 'attempted';
-            $time['attempted_at'] = now()->format('Y-m-d H:i:s');
-            $time = ExamSkillStatus::withDeviceIp($time);
+            $this->recordAnswers($attempt, $prepared);
 
-            $student_exam->sentences_structures_status = $time;
-            $student_exam->save();
-            $student_exam->refresh();
+            $status = $attempt->{$statusColumn} ?? [];
+            $status['status'] = 'attempted';
+            $status['attempted_at'] = now()->format('Y-m-d H:i:s');
 
-            if ($student_exam->sentences_structures_status['status'] !== 'attempted') {
+            $attempt->{$statusColumn} = ExamSkillStatus::withDeviceIp($status);
+            $attempt->save();
+            $attempt->refresh();
+
+            if (($attempt->{$statusColumn}['status'] ?? null) !== 'attempted') {
                 throw new Exception('Failed to update exam status in database.');
             }
 
             DB::commit();
 
             return response()->json(['message' => 'Exam Submitted Successfully'], 200);
-        } catch (Exception $e) {
-
+        } catch (\Throwable $e) {
             DB::rollback();
 
-            return response()->json($e->getMessage(), 500);
+            // The files were written outside the transaction, so they survive
+            // the rollback unless they are removed here. The old code built
+            // this list but never added to it, so nothing was ever cleaned up.
+            foreach ($storedPaths as $path) {
+                Storage::delete($path);
+            }
+
+            Log::error('Exam submission failed', [
+                'student_exam_id' => $attempt->id,
+                'skill' => $statusColumn,
+                'exception' => $e,
+            ]);
+
+            // Not $e->getMessage(): that handed the browser raw SQL and file
+            // paths on any failure.
+            return response()->json([
+                'message' => 'Your answers could not be saved. Please try again.',
+            ], 500);
         }
     }
 
-    public function saveReadExam(Request $request)
+    /**
+     * Write the answers for one paper.
+     *
+     * This was an updateOrCreate per answer, so a 32 question paper cost 67
+     * queries and about 350ms, all of it landing at the moment a room full of
+     * students runs out of time at once. A first submit is two queries now.
+     *
+     * @param  array<int|string, array{answer: mixed, type: string|null}>  $answers
+     */
+    private function recordAnswers(StudentExam $attempt, array $answers): void
     {
+        if ($answers === []) {
+            return;
+        }
 
-        try {
-            DB::beginTransaction();
-            $student_exam = StudentExam::find($request->exam_id);
-            $time = $student_exam->reading_status;
-            $answers = $request->answer ?? [];
-            foreach ($answers as $index => $ans) {
-                TakeExam::updateOrCreate(
-                    [
-                        'student_exam_id' => $request->exam_id,
-                        'question_id' => $index,
-                        'student_id' => auth()->user()->id,
-                    ],
-                    [
-                        'answer' => $ans['answer'] ?? '',
-                        'type' => $ans['type'] ?? 'reading',
-                    ]
-                );
+        $questionIds = array_keys($answers);
+
+        $existing = TakeExam::query()
+            ->where('student_exam_id', $attempt->id)
+            ->whereIn('question_id', $questionIds)
+            ->pluck('id', 'question_id');
+
+        $fallbackTypes = Question::query()
+            ->whereIn('id', $questionIds)
+            ->pluck('type', 'id');
+
+        $now = now();
+        $insert = [];
+
+        foreach ($answers as $questionId => $answer) {
+            $row = [
+                'answer' => $answer['answer'] ?? '',
+                'type' => $this->answerType($answer['type'] ?? null, $fallbackTypes[$questionId] ?? null),
+                'updated_at' => $now,
+            ];
+
+            if (isset($existing[$questionId])) {
+                TakeExam::query()->whereKey($existing[$questionId])->update($row);
+
+                continue;
             }
 
-            $time['status'] = 'attempted';
-            $time['attempted_at'] = now()->format('Y-m-d H:i:s');
-            $time = ExamSkillStatus::withDeviceIp($time);
+            $insert[] = $row + [
+                'student_exam_id' => $attempt->id,
+                'question_id' => $questionId,
+                'student_id' => $attempt->student_id,
+                'created_at' => $now,
+            ];
+        }
 
-            $student_exam->reading_status = $time;
-            $student_exam->save();
-            $student_exam->refresh();
-
-            if ($student_exam->reading_status['status'] !== 'attempted') {
-                throw new Exception('Failed to update exam status in database.');
-            }
-
-            DB::commit();
-
-            return response()->json(['message' => 'Exam Submitted Successfully'], 200);
-        } catch (Exception $e) {
-
-            DB::rollback();
-
-            return response()->json($e->getMessage(), 500);
+        if ($insert !== []) {
+            TakeExam::query()->insert($insert);
         }
     }
 
-    // for listening exam
-    public function saveListenExam(Request $request)
+    /**
+     * A type the enum will accept: what the browser sent if it is a member,
+     * otherwise the type the question itself carries.
+     */
+    private function answerType(?string $sent, ?string $questionType): string
     {
-
-        try {
-            DB::beginTransaction();
-            $student_exam = StudentExam::find($request->exam_id);
-            $time = $student_exam->listening_status;
-            $answers = $request->answer ?? [];
-            foreach ($answers as $index => $ans) {
-                TakeExam::updateOrCreate(
-                    [
-                        'student_exam_id' => $request->exam_id,
-                        'question_id' => $index,
-                        'student_id' => auth()->user()->id,
-                    ],
-                    [
-                        'answer' => $ans['answer'] ?? '',
-                        'type' => $ans['type'] ?? 'listening',
-                    ]
-                );
+        foreach ([$sent, $questionType] as $candidate) {
+            if ($candidate !== null && in_array($candidate, self::ANSWER_TYPES, true)) {
+                return $candidate;
             }
-
-            $time['status'] = 'attempted';
-            $time['attempted_at'] = now()->format('Y-m-d H:i:s');
-            $time = ExamSkillStatus::withDeviceIp($time);
-
-            $student_exam->listening_status = $time;
-            $student_exam->save();
-            $student_exam->refresh();
-
-            if ($student_exam->listening_status['status'] !== 'attempted') {
-                throw new Exception('Failed to update exam status in database.');
-            }
-
-            DB::commit();
-
-            return response()->json(['message' => 'Exam Submitted Successfully'], 200);
-        } catch (Exception $e) {
-
-            DB::rollback();
-
-            return response()->json($e->getMessage(), 500);
         }
+
+        return 'MCQs';
     }
 
-    public function saveWritingExam(Request $request)
+    /**
+     * Writing answers are either uploaded images or typed text.
+     */
+    private function writingAnswer(): callable
     {
-
-        try {
-            DB::beginTransaction();
-
-            $student_exam = StudentExam::find($request->exam_id);
-            $time = $student_exam->writing_status;
-
-            $answers = $request->answer ?? [];
-            $pth = [];
-            foreach ($answers as $index => $ans) {
-
-                if ($request->hasFile("answer.{$index}.answer.*")) {
-                    $images = $request->file("answer.{$index}.answer");
-
-                    $imgs = collect($images)->map(function ($image) {
+        return function (Request $request, $questionId, array $answer, array &$storedPaths): array {
+            if ($request->hasFile("answer.{$questionId}.answer.*")) {
+                $images = collect($request->file("answer.{$questionId}.answer"))
+                    ->map(function ($image) use (&$storedPaths) {
                         $path = $image->store('public/images');
+                        $storedPaths[] = $path;
 
                         return create_image(basename($path));
                     });
 
-                    $ans['answer'] = serialize($imgs->toArray());
-                    $ans['type'] = 'writing';
-                } else {
-                    $ans['answer'] = $request->input("answer.{$index}.answer", '');
-                }
-
-                TakeExam::updateOrCreate([
-                    'student_exam_id' => $request->exam_id,
-                    'question_id' => $index,
-                    'student_id' => auth()->user()->id,
-                ], [
-                    'answer' => $ans['answer'],
-                    'type' => $ans['type'] ?? 'writing',
-                ]);
+                return ['answer' => serialize($images->toArray()), 'type' => 'writing'];
             }
 
-            $time['status'] = 'attempted';
-            $time['attempted_at'] = now()->format('Y-m-d H:i:s');
-            $time = ExamSkillStatus::withDeviceIp($time);
-
-            $student_exam->writing_status = $time;
-            $student_exam->save();
-            $student_exam->refresh();
-
-            if ($student_exam->writing_status['status'] !== 'attempted') {
-                throw new Exception('Failed to update exam status in database.');
-            }
-            DB::commit();
-
-            return response()->json(['message' => 'Exam Submitted Successfully'], 200);
-        } catch (Exception $e) {
-            \Log::error($e);
-            DB::rollback();
-            if (isset($pth) && is_array($pth)) {
-                foreach ($pth as $path) {
-                    Storage::delete($path);
-                }
-            }
-
-            return response()->json($e->getMessage(), 500);
-        }
+            return [
+                'answer' => $request->input("answer.{$questionId}.answer", ''),
+                'type' => 'writing',
+            ];
+        };
     }
 
-    public function saveSpeakingExam(Request $request)
+    /**
+     * Speaking answers arrive as base64 audio and are stored as a file.
+     */
+    private function speakingAnswer(): callable
     {
-        try {
-            DB::beginTransaction();
-
-            $student_exam = StudentExam::findOrFail($request->exam_id);
-            $time = $student_exam->speaking_status ?? [];
-            $answers = $request->answer ?? [];
-
-            foreach ($answers as $index => $ans) {
-                $filename = '';
-
-                if (
-                    isset($ans['type']) &&
-                    $ans['type'] === 'speaking' &&
-                    ! empty($ans['answer'])
-                ) {
-                    // 1️⃣ Safe base64 decode
-                    $audioData = base64_decode($ans['answer'], true);
-
-                    if ($audioData === false) {
-                        throw new Exception('Invalid audio data received.');
-                    }
-
-                    // 2️⃣ Detect MIME
-                    $mime = $ans['mime'] ?? null;
-
-                    if (empty($mime) && class_exists('finfo')) {
-                        try {
-                            $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                            $mime = $finfo->buffer($audioData);
-                        } catch (\Throwable $e) {
-                            // ignore
-                        }
-                    }
-
-                    // 3️⃣ Decide extension
-                    $ext = 'bin';
-                    if (! empty($mime)) {
-                        $m = strtolower($mime);
-                        if (str_contains($m, 'audio/mp4') || str_contains($m, 'mp4')) {
-                            $ext = 'm4a';
-                        } elseif (str_contains($m, 'webm')) {
-                            $ext = 'webm';
-                        } elseif (str_contains($m, 'ogg') || str_contains($m, 'opus')) {
-                            $ext = 'ogg';
-                        } elseif (str_contains($m, 'mpeg') || str_contains($m, 'mp3')) {
-                            $ext = 'mp3';
-                        } elseif (str_contains($m, 'wav')) {
-                            $ext = 'wav';
-                        }
-                    }
-
-                    // 4️⃣ Generate filename
-                    $filename = 'recorded_audio_'.$index.'_'.time().'.'.$ext;
-
-                    // 5️⃣ Store audio
-                    $saved = Storage::disk('public')->put('images/'.$filename, $audioData);
-
-                    if (! $saved) {
-                        throw new Exception('Failed to save audio file.');
-                    }
-                }
-
-                // 6️⃣ Save answer
-                TakeExam::updateOrCreate(
-                    [
-                        'student_exam_id' => $request->exam_id,
-                        'question_id' => $index,
-                        'student_id' => auth()->user()->id,
-                    ],
-                    [
-                        'answer' => $filename ? create_image($filename) : '',
-                        'type' => $ans['type'] ?? 'speaking',
-                    ]
-                );
+        return function (Request $request, $questionId, array $answer, array &$storedPaths): array {
+            if (($answer['type'] ?? null) !== 'speaking' || empty($answer['answer'])) {
+                return ['answer' => '', 'type' => 'speaking'];
             }
 
-            // 7️⃣ Update exam status
-            $time['status'] = 'attempted';
-            $time['attempted_at'] = now()->format('Y-m-d H:i:s');
-            $time = ExamSkillStatus::withDeviceIp($time);
+            $audio = base64_decode((string) $answer['answer'], true);
 
-            $student_exam->update([
-                'speaking_status' => $time,
-            ]);
+            if ($audio === false) {
+                throw new Exception('Invalid audio data received.');
+            }
 
-            DB::commit();
+            $filename = 'recorded_audio_'.$questionId.'_'.time().'.'.$this->audioExtension($answer, $audio);
+            $path = 'images/'.$filename;
 
-            return response()->json(['message' => 'Exam Submitted Successfully'], 200);
-        } catch (Exception $e) {
-            DB::rollback();
+            if (! Storage::disk('public')->put($path, $audio)) {
+                throw new Exception('Failed to save audio file.');
+            }
 
-            return response()->json(['error' => $e->getMessage()], 500);
+            $storedPaths[] = 'public/'.$path;
+
+            return ['answer' => create_image($filename), 'type' => 'speaking'];
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $answer
+     */
+    private function audioExtension(array $answer, string $audio): string
+    {
+        $mime = $answer['mime'] ?? null;
+
+        if (empty($mime) && class_exists('finfo')) {
+            try {
+                $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($audio);
+            } catch (\Throwable) {
+                // fall through to the default
+            }
         }
+
+        $mime = strtolower((string) $mime);
+
+        return match (true) {
+            str_contains($mime, 'mp4') => 'm4a',
+            str_contains($mime, 'webm') => 'webm',
+            str_contains($mime, 'ogg'), str_contains($mime, 'opus') => 'ogg',
+            str_contains($mime, 'mpeg'), str_contains($mime, 'mp3') => 'mp3',
+            str_contains($mime, 'wav') => 'wav',
+            default => 'bin',
+        };
     }
 }
