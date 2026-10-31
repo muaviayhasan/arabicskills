@@ -184,7 +184,7 @@
 
                                         <td>
                                             @php
-                                                $reopenable = $canReopen ? $this->reopenableSkills($exam) : [];
+                                                $reopenable = $canReopen ? $this->reopenableSkills($exam, $answeredSkills[$exam->id] ?? []) : [];
                                             @endphp
                                             <div class="d-flex flex-column align-items-center gap-2">
                                                 @if (($exam->take_exam_count ?? 0) > 0)

@@ -210,18 +210,24 @@ class AttemptedExams extends Component
             })
             ->where('checked', false)
             ->with(['Student', 'Exam'])
-            ->withCount('TakeExam')
             ->find($studentExamId);
     }
 
     /**
      * The skills of one row an admin can hand back to the student.
      *
+     * The list passes the map it built for the whole page, so the per-skill
+     * lookup costs one query for twenty rows rather than one each. The confirm
+     * and reopen actions work on a single row and look it up themselves.
+     *
+     * @param  array<string, true>|null  $answeredSkills
      * @return array<string, string>
      */
-    public function reopenableSkills(StudentExam $exam): array
+    public function reopenableSkills(StudentExam $exam, ?array $answeredSkills = null): array
     {
-        return ExamSkillStatus::reopenableSkills($exam, ($exam->take_exam_count ?? 0) > 0);
+        $answeredSkills ??= ExamSkillStatus::answeredSkillsFor([$exam->id])[$exam->id] ?? [];
+
+        return ExamSkillStatus::reopenableSkills($exam, $answeredSkills);
     }
 
     public function confirmReopen($studentExamId)
@@ -518,6 +524,8 @@ class AttemptedExams extends Component
 
         return view('livewire.admin.exam-check.attempted-exams', [
             'exams' => $exams,
+            // One query for the page: which skills of these rows hold work.
+            'answeredSkills' => ExamSkillStatus::answeredSkillsFor($exams->pluck('id')->all()),
             'schools' => $schools,
             'grades' => $grades,
             'levels' => $levels,
