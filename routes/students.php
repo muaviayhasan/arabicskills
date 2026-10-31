@@ -34,7 +34,11 @@ Route::middleware(['auth:web'])->prefix('/student')->group(function () {
 
     Route::get('/exams', SkillExams::class)->name('student.exams');
 
-    Route::get('/exams/instruction/{type}', ExamInstructions::class)->name('student.exams-instructions');
+    // Constrained at the route, so an unknown skill never reaches the page
+    // that would build a route name out of it.
+    Route::get('/exams/instruction/{type}', ExamInstructions::class)
+        ->whereIn('type', ExamInstructions::SKILLS)
+        ->name('student.exams-instructions');
 
     Route::get('/exams/reading-exam', ReadingExam::class)->name('student.reading-exam');
     Route::get('/exams/listening-exam', ListeningExam::class)->name('student.listening-exam');
