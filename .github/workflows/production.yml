@@ -79,6 +79,13 @@ jobs:
             /usr/bin/php artisan storage:link
             /usr/bin/php artisan optimize:clear
 
+            # Then build them again. Clearing alone left the site parsing every
+            # config file and compiling the whole route table on each request,
+            # which is why production ran uncached: this step was the last word.
+            /usr/bin/php artisan config:cache
+            /usr/bin/php artisan route:cache
+            /usr/bin/php artisan view:cache
+
             SOURCE_PUBLIC="$REMOTE_DIR/public"
             WEBROOT="$REMOTE_DIR/../public_html"
 

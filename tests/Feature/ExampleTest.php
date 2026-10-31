@@ -8,12 +8,11 @@ use Tests\TestCase;
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
+     * The stock version of this asserted 200 and so had always failed: the
+     * site has no landing page and sends the root to the student login.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_the_application_responds_at_the_root(): void
     {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
+        $this->get('/')->assertRedirect('/login');
     }
 }

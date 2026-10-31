@@ -3,15 +3,17 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\QuestionBankController;
-use App\Livewire\Admin\AssessmentMarks\AllMarks;
-use App\Livewire\Admin\AssessmentMarks\ImportMarks;
 use App\Livewire\Admin\Admins\AddAdmin;
 use App\Livewire\Admin\Admins\AllAdmins;
 use App\Livewire\Admin\Admins\EditAdmin;
+use App\Livewire\Admin\AssessmentMarks\AllMarks;
+use App\Livewire\Admin\AssessmentMarks\ImportMarks;
 use App\Livewire\Admin\Auth\Adminino;
 use App\Livewire\Admin\Auth\RequestPassword;
 use App\Livewire\Admin\Auth\ResetPassword;
 use App\Livewire\Admin\Dashboard;
+use App\Livewire\Admin\DeviceTests\AllDeviceTests;
+use App\Livewire\Admin\DeviceTests\DeviceTestDetails;
 use App\Livewire\Admin\ExamCheck\AllResults;
 use App\Livewire\Admin\ExamCheck\AttemptedExams;
 use App\Livewire\Admin\ExamCheck\CheckExam;
@@ -63,9 +65,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest:admin')->get('/adminino', Adminino::class)->name('admin.login');
 
 Route::view('/access-denied', 'accessDenied')->name('access-denied');
-Route::get('/coming-soon', function () {
-    return view('comming-soon');
-})->name('coming-soon');
+// Route::view, not a closure, so the route table can be cached.
+Route::view('/coming-soon', 'comming-soon')->name('coming-soon');
 Route::get('/download-sample', [Controller::class, 'downloadSample'])->name('download-sample');
 // admin routes
 
@@ -116,8 +117,8 @@ Route::middleware(['auth:admin', 'permissions'])->prefix('/adminino')->group(fun
     Route::get('/students/student/edit-student/{student}', EditStudent::class)->name('admin.edit-student')->middleware('permissions:students,edit');
 
     // device tests routes
-    Route::get('/device-tests', \App\Livewire\Admin\DeviceTests\AllDeviceTests::class)->name('admin.device-tests')->middleware('permissions:students,view');
-    Route::get('/device-tests/{id}', \App\Livewire\Admin\DeviceTests\DeviceTestDetails::class)->name('admin.device-tests.details')->middleware('permissions:students,view');
+    Route::get('/device-tests', AllDeviceTests::class)->name('admin.device-tests')->middleware('permissions:students,view');
+    Route::get('/device-tests/{id}', DeviceTestDetails::class)->name('admin.device-tests.details')->middleware('permissions:students,view');
 
     // question-banks routes
     Route::get('/question-banks/{grade_id?}', AllQuestionBanks::class)->name('admin.question-banks')->middleware('permissions:question_banks,view');
