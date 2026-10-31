@@ -11,11 +11,40 @@ if (! function_exists('image')) {
             $path = trim($path, '/');
 
             $final_image = file_exists(getcwd()."/{$path}/{$image}") ? asset("{$path}/{$image}") : ($dummy != '' ? asset('assets/images/'.$dummy) : asset('assets/images/no-image.png'));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $final_image = asset('assets/images/no-image.png');
         }
 
         return asset($final_image);
+    }
+}
+
+if (! function_exists('resolve_upload')) {
+    /**
+     * An upload row by id, remembered for the life of the request.
+     *
+     * Blade asks for one per image or audio clip on the page, so a listening
+     * paper paid a query per clip. Passing $forget drops the memo, which
+     * delete_image does so a later read in the same request does not see a row
+     * that has just been removed.
+     */
+    function resolve_upload($image = null, bool $forget = false)
+    {
+        static $cache = [];
+
+        $key = (string) $image;
+
+        if ($forget) {
+            unset($cache[$key]);
+
+            return null;
+        }
+
+        if (! array_key_exists($key, $cache)) {
+            $cache[$key] = Upload::find($image);
+        }
+
+        return $cache[$key];
     }
 }
 
@@ -27,14 +56,14 @@ if (! function_exists('read_image')) {
         }
 
         try {
-            $upload = Upload::find($image);
+            $upload = resolve_upload($image);
 
             if ($upload) {
                 $final_image = file_exists(getcwd()."/uploads/images/{$upload->path}") ? asset("uploads/images/{$upload->path}") : asset('assets/images/no-image.png');
             } else {
                 $final_image = asset('assets/images/no-image.png');
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $final_image = asset('assets/images/no-image.png');
         }
 
@@ -46,7 +75,7 @@ if (! function_exists('check_is_image')) {
     function check_is_image($image = null)
     {
 
-        $upload = Upload::find($image);
+        $upload = resolve_upload($image);
 
         if ($upload) {
             return true;
@@ -68,7 +97,7 @@ if (! function_exists('create_image')) {
             } else {
                 throw new Exception('asset image not created');
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
     }
@@ -83,10 +112,11 @@ if (! function_exists('delete_image')) {
             if ($upload) {
                 Storage::disk('public')->delete("images/{$upload->path}");
                 $upload->delete();
+                resolve_upload($image, true);
             }
 
             return 1;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
     }
@@ -121,13 +151,13 @@ if (! function_exists('getPermissions')) {
             }
 
             return $permissions[$key][$type];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
             // if is in production mode
             if (config('app.debug') == false) {
                 return false;
             }
-            throw new \Exception("Permission for {$key} not found");
+            throw new Exception("Permission for {$key} not found");
         }
     }
 }

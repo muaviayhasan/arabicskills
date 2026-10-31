@@ -38,9 +38,9 @@ class SkillExams extends Component
     {
         $std = $this->authenticatedStudent();
 
-        Exam::reconcileStudentExams($std);
-
-        $visibleExams = Exam::resolvedExamsForStudent($std, Exam::STUDENT_VISIBLE_STATUSES);
+        // Reconcile hands back the exams it resolved, so the candidate query
+        // and its json_contains level lookup run once for the page, not twice.
+        $visibleExams = Exam::reconcileStudentExams($std);
         $resolvedExamIds = $visibleExams->pluck('id')->all();
 
         $this->latestExam = empty($resolvedExamIds)

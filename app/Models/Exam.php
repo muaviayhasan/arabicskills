@@ -322,8 +322,15 @@ class Exam extends Model
 
     /**
      * Ensure a student has student_exams rows for resolved exams and remove stale unchecked links.
+     *
+     * Returns the exams it resolved, so a caller that needs them does not pay
+     * for the candidate query a second time: the exam list used to reconcile
+     * and then resolve again, running the json_contains level lookup twice per
+     * page view.
+     *
+     * @return Collection<int, self>
      */
-    public static function reconcileStudentExams(Student $student): void
+    public static function reconcileStudentExams(Student $student): Collection
     {
         static::dedupeStudentExamPairs($student->id);
 
@@ -333,7 +340,7 @@ class Exam extends Model
                 ->where('checked', false)
                 ->delete();
 
-            return;
+            return collect();
         }
 
         $visibleExams = static::resolvedExamsForStudent($student, static::STUDENT_VISIBLE_STATUSES);
@@ -371,5 +378,7 @@ class Exam extends Model
                     });
             })
             ->delete();
+
+        return $visibleExams;
     }
 }
