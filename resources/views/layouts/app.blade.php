@@ -5,10 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('options.web_name') }} | {{ $title }}</title>
-    <link rel="stylesheet" href="{{ asset('includes') }}/css/style.css?v={{ time() }}">
+    <link rel="stylesheet" href="{{ versioned_asset('includes/css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('includes') }}/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ asset('includes') }}/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('assets/select2/select2.min.css') }}">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -255,10 +254,10 @@
 
     <!-- ===============script-tag=============== -->
     <script src="{{ asset('includes') }}/js/jquery.js"></script>
-    <script src="{{ asset('includes') }}/js/script.js?v={{ time() }}"></script>
+    <script src="{{ versioned_asset('includes/js/script.js') }}"></script>
     <script src="{{ asset('includes') }}/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('assets/libs/sweetalert2/sweetalert2.all.min.js') }}"></script>
-    <script src="{{ asset('includes/js/take_exam.js') }}?v={{ time() }}"></script>
+    <script src="{{ versioned_asset('includes/js/take_exam.js') }}"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {

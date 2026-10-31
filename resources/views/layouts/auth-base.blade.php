@@ -21,9 +21,7 @@
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Vazirmatn:wght@400;500;600&display=swap">
 
-    {{-- Suppressed: a missing stylesheet should leave the login plain, never 500. --}}
-    <link rel="stylesheet"
-        href="{{ asset('assets/css/auth-ast.css') }}?v={{ @filemtime(public_path('assets/css/auth-ast.css')) ?: 1 }}">
+    <link rel="stylesheet" href="{{ versioned_asset('assets/css/auth-ast.css') }}">
 
     @livewireStyles
 </head>

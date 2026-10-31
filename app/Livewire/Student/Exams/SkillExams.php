@@ -4,7 +4,9 @@ namespace App\Livewire\Student\Exams;
 
 use App\Livewire\Student\Concerns\LoadsStudentRelations;
 use App\Models\Exam;
+use App\Models\Question;
 use App\Models\StudentExam;
+use App\Models\TakeExam;
 use App\Support\ExamActivityQuery;
 use Livewire\Component;
 
@@ -119,12 +121,75 @@ class SkillExams extends Component
         return $activities;
     }
 
+    /**
+     * The attempted skills that still have a question with nothing recorded
+     * against them.
+     *
+     * The page used to work this out per skill card, loading every activity,
+     * every question on it and every answer the student gave, just to decide
+     * whether to print one warning line. It is two aggregate queries for the
+     * whole page now, and nothing is hydrated.
+     *
+     * @param  array<string, list<int>>  $skillActivities
+     * @return array<string, bool>
+     */
+    public function skillsWithMissingAnswers(array $skillActivities): array
+    {
+        $missing = [];
+        $wanted = [];
+
+        foreach ($skillActivities as $skill => $activityIds) {
+            $missing[$skill] = false;
+
+            if ($activityIds === [] || ($this->latestExam?->{$skill.'_status'}['status'] ?? null) !== 'attempted') {
+                continue;
+            }
+
+            $wanted[$skill] = $activityIds;
+        }
+
+        $allIds = array_values(array_unique(array_merge(...array_values($wanted) ?: [[]])));
+
+        if ($allIds === []) {
+            return $missing;
+        }
+
+        $asked = Question::query()
+            ->whereIn('activity_id', $allIds)
+            ->groupBy('activity_id')
+            ->selectRaw('activity_id, COUNT(*) as total')
+            ->pluck('total', 'activity_id');
+
+        $answered = TakeExam::query()
+            ->join('questions', 'questions.id', '=', 'take_exams.question_id')
+            ->where('take_exams.student_id', $this->latestExam->student_id)
+            ->whereIn('questions.activity_id', $allIds)
+            ->whereNotNull('take_exams.answer')
+            ->whereNotIn('take_exams.answer', ['', '{}'])
+            ->groupBy('questions.activity_id')
+            ->selectRaw('questions.activity_id as activity_id, COUNT(DISTINCT take_exams.question_id) as answered')
+            ->pluck('answered', 'activity_id');
+
+        foreach ($wanted as $skill => $activityIds) {
+            foreach ($activityIds as $activityId) {
+                if ((int) ($asked[$activityId] ?? 0) > (int) ($answered[$activityId] ?? 0)) {
+                    $missing[$skill] = true;
+                    break;
+                }
+            }
+        }
+
+        return $missing;
+    }
+
     public function render()
     {
         $student = $this->authenticatedStudent();
+        $skillActivities = $this->skillActivities();
 
         return view('livewire.student.exams.skill-exams', [
-            'skillActivities' => $this->skillActivities(),
+            'skillActivities' => $skillActivities,
+            'missingAnswers' => $this->skillsWithMissingAnswers($skillActivities),
             // The exam may be labelled "All Levels"; the student sits one.
             'studentLevelName' => $student?->assignedLevel?->name,
         ])->layout('layouts.app')->layoutData([

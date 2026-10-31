@@ -131,3 +131,20 @@ if (! function_exists('getPermissions')) {
         }
     }
 }
+
+if (! function_exists('versioned_asset')) {
+    /**
+     * An asset URL carrying the file's own timestamp.
+     *
+     * These were cache-busted with time(), which changes every second, so a
+     * student re-downloaded the same stylesheet and scripts on every page of
+     * the exam flow. The version only moves when the file does now, and a
+     * missing file still returns a usable URL rather than throwing.
+     */
+    function versioned_asset(string $path): string
+    {
+        $version = @filemtime(public_path($path)) ?: 1;
+
+        return asset($path).'?v='.$version;
+    }
+}

@@ -125,29 +125,8 @@
 
                             $status = $latestExam->{$activity . '_status'}['status'] ?? 'unattempted';
                             $isClickable = $status === 'unattempted';
-                            $hasMissingAnswers = false;
-
-                            if ($status === 'attempted' && is_array($activityIds) && count($activityIds)) {
-                                $activitiesModels = \App\Models\Activity::with([
-                                    'Question.TakeExam' => function ($q) use ($latestExam) {
-                                        $q->where('student_id', $latestExam->student_id);
-                                    },
-                                ])->whereIn('id', $activityIds)->get();
-
-                                foreach ($activitiesModels as $act) {
-                                    foreach ($act->Question as $question) {
-                                        if (
-                                            !isset($question->TakeExam) ||
-                                            $question->TakeExam->answer === null ||
-                                            $question->TakeExam->answer === '' ||
-                                            $question->TakeExam->answer === '{}'
-                                        ) {
-                                            $hasMissingAnswers = true;
-                                            break 2;
-                                        }
-                                    }
-                                }
-                            }
+                            // Worked out for every skill at once in the component.
+                            $hasMissingAnswers = $missingAnswers[$activity] ?? false;
 
                             $statusClass = match ($status) {
                                 'attempted' => 'is-attempted',
