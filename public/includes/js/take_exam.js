@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const placeholder = document.getElementById('timer-placeholder');
     if (!timer || !placeholder) return;
 
-    let remaining = parseInt(timer.dataset.remaining, 10);
+    // How much time the server granted when this page was built.
+    const granted = parseInt(timer.dataset.remaining, 10);
+    const openedAt = Date.now();
     const originalParent = timer.parentNode;
     const originalNext = timer.nextSibling;
     const triggerOffset = timer.getBoundingClientRect().top + window.scrollY;
@@ -15,18 +17,43 @@ document.addEventListener('DOMContentLoaded', function () {
         return `${h}:${m}:${s}`;
     }
 
-    timer.textContent = format(remaining);
+    // The clock is read from how much time has actually passed, rather than by
+    // taking one off a counter each tick. Browsers throttle setInterval in a
+    // background tab to roughly once a minute, so a counting-down variable
+    // stops while the exam does not: a student who switched tabs came back to a
+    // clock showing minutes they no longer had, and the auto-submit fired late.
+    //
+    // Elapsed time is used instead of an absolute end timestamp so that a
+    // device whose clock is wrong cannot lengthen or shorten the exam.
+    function remainingSeconds() {
+        return Math.max(0, granted - Math.round((Date.now() - openedAt) / 1000));
+    }
 
-    const interval = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) {
-            clearInterval(interval);
-            timer.textContent = "00:00:00";
-            if (!isSubmitting) Livewire.dispatch('expireExam');
-            return;
-        }
-        timer.textContent = format(remaining);
-    }, 1000);
+    let interval = null;
+    let expired = false;
+
+    function paint() {
+        const left = remainingSeconds();
+        timer.textContent = format(left);
+
+        if (left > 0 || expired) return;
+
+        expired = true;
+        if (interval) clearInterval(interval);
+        if (!isSubmitting) Livewire.dispatch('expireExam');
+    }
+
+    // Render only, no expiry check: at DOMContentLoaded Livewire may not be
+    // listening yet, and the server has already turned away an exam whose
+    // window has closed.
+    timer.textContent = format(remainingSeconds());
+    interval = setInterval(paint, 1000);
+
+    // A throttled tab can be many ticks behind, so repaint the moment it is
+    // looked at again instead of letting the stale figure stand for a second.
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) paint();
+    });
 
     function pinToBody() {
         if (!timer.classList.contains('fixed')) {
