@@ -1,34 +1,7 @@
 <?php
 
-use App\Livewire\Admin\Dashboard;
-use App\Livewire\Admin\Auth\Adminino;
-use App\Livewire\Admin\Exams\AddExam;
-use Illuminate\Support\Facades\Route;
-use App\Livewire\Admin\Exams\AllExams;
-use App\Livewire\Admin\Exams\EditExam;
-use App\Livewire\Admin\Admins\AddAdmin;
-use Illuminate\Support\Facades\Artisan;
-use App\Livewire\Admin\Admins\AllAdmins;
-use App\Livewire\Admin\Admins\EditAdmin;
-use App\Livewire\Admin\Options\Settings;
 use App\Http\Controllers\AdminController;
-use App\Livewire\Admin\Schools\AddSchool;
-use App\Livewire\Admin\Auth\ResetPassword;
-use App\Livewire\Admin\Schools\AllSchools;
-use App\Livewire\Admin\Schools\EditSchool;
-use App\Livewire\Admin\Students\AddStudent;
-use App\Livewire\Admin\Auth\RequestPassword;
-use App\Livewire\Admin\Profile\AdminProfile;
-use App\Livewire\Admin\Students\AllStudents;
-use App\Livewire\Admin\Students\EditStudent;
-use App\Http\Controllers\QuestionBankController;
-use App\Livewire\Admin\Schools\GradesAndSections;
-use App\Livewire\Admin\QuestionBanks\AddQuestionBank;
-use App\Livewire\Admin\QuestionBanks\AllQuestionBanks;
-use App\Livewire\Admin\QuestionBanks\EditQuestionBank;
-use App\Livewire\Admin\RolesAndPermission\RolePermission;
-use App\Livewire\Admin\RolesAndPermission\EditRolePermission;
-use App\Livewire\Admin\Students\ImportStudent;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,24 +14,19 @@ use App\Livewire\Admin\Students\ImportStudent;
 |
 */
 
-Route::get('/install', function () {
-    // if is not production
-    if (env('APP_ENV') !== 'production') {
-        Artisan::call('migrate:fresh --seed');
-        Artisan::call('storage:link');
-    }
-});
+// Route::redirect, not a closure, so the route table can be cached.
+Route::redirect('/', '/login');
 
-Route::get('/migrate', function () {
-    Artisan::call('migrate');
-});
+// Clearing the caches was a public URL that anyone could hit, as often as they
+// liked. It is an admin action, and it rebuilds afterwards instead of leaving
+// the site to parse config and compile the route table on every request.
+Route::middleware('auth:admin')
+    ->get('/clear-cache', [AdminController::class, 'refreshCaches'])
+    ->name('admin.refresh-caches');
 
-Route::get('/', function () {
-    // auth()->logout();
-    return redirect()->route('login');
-});
-
-Route::get('/clear-cache', function () {
-    Artisan::call('optimize:clear');
-    return redirect()->route('login');
-});
+// Removed: /install and /migrate, both unauthenticated.
+//
+// /install ran `migrate:fresh --seed` unless env('APP_ENV') was 'production'.
+// Caching the config stops .env being read, so env() returns null, the guard
+// inverts, and that URL drops every table and reseeds. /migrate ran pending
+// migrations on request. Both belong on the command line, over ssh.

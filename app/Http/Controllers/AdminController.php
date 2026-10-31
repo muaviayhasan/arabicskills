@@ -2,17 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
-use App\Models\Section;
 use App\Models\Activity;
+use App\Models\Section;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
+    /**
+     * Clear the caches and build them again.
+     *
+     * Clearing on its own leaves the site parsing every config file and
+     * compiling the whole route table on each request, which is slower than
+     * before it was cleared, so this rebuilds what it just dropped.
+     */
+    public function refreshCaches()
+    {
+        Artisan::call('optimize:clear');
+
+        foreach (['config:cache', 'route:cache', 'view:cache'] as $command) {
+            Artisan::call($command);
+        }
+
+        return redirect()->route('admin.dashboard');
+    }
+
     public function adminLogout()
     {
         Auth::guard('admin')->logout();
+
         return redirect()->route('admin.login');
     }
 
@@ -27,7 +47,7 @@ class AdminController extends Controller
                     $query->whereRelation('Grade', 'id', '=', $sec->grade_id);
                 })
                 ->get();
-            if ($request->type == "listening") {
+            if ($request->type == 'listening') {
                 $activities = $activities->map(function ($activity) {
                     return [
                         'id' => $activity->id,
@@ -39,7 +59,7 @@ class AdminController extends Controller
             return response()->json($activities, 200);
         } catch (Exception $e) {
 
-            return response()->json(["errors" => $e->getMessage()], 500);
+            return response()->json(['errors' => $e->getMessage()], 500);
         }
     }
 }
