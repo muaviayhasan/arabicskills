@@ -187,13 +187,20 @@
                                                 $reopenable = $canReopen ? $this->reopenableSkills($exam, $answeredSkills[$exam->id] ?? []) : [];
                                             @endphp
                                             <div class="d-flex flex-column align-items-center gap-2">
-                                                @if (($exam->take_exam_count ?? 0) > 0)
-                                                    <a href="{{ route('admin.student-exam.details', $exam->id) }}"
-                                                        class="btn btn-danger">
-                                                        Details</a>
-                                                @else
+                                                {{-- Absent still marks a paper with nothing recorded on it, but
+                                                     Details stays reachable either way: it is the only route to the
+                                                     per-skill reassign, and the rows that need it most are exactly
+                                                     these. A student who hit a technical problem part way through has
+                                                     recorded nothing, because nothing is written until a paper is
+                                                     submitted, so hiding the link left an admin with no way in at
+                                                     all until the window had run out. --}}
+                                                @if (($exam->take_exam_count ?? 0) === 0)
                                                     <span class="badge bg-secondary">Absent</span>
                                                 @endif
+
+                                                <a href="{{ route('admin.student-exam.details', $exam->id) }}"
+                                                    class="btn btn-danger">
+                                                    Details</a>
 
                                                 @if ($reopenable)
                                                     <button type="button" class="btn btn-sm btn-outline-primary"
