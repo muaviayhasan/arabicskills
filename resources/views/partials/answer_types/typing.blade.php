@@ -1,3 +1,8 @@
+@php
+    // A reopened paper opens with whatever the student had already recorded,
+    // so they continue instead of starting the question again.
+    $saved = ($savedAnswers ?? [])[$question->id] ?? null;
+@endphp
 <div wire:ignore class="quiz-box py-4">
     <div class="row">
         <h4 class="m-0 fs-5 d-flex">
@@ -17,7 +22,7 @@
 
         <div class="form-area">
             <textarea name="answer[{{ $question->id }}][answer]" class="form-control anstextarea no-copy-paste" placeholder="Type Your Answer"
-             style="height: 100px" id="textInput_{{ $question->id }}"></textarea>
+             style="height: 100px" id="textInput_{{ $question->id }}">{{ $saved }}</textarea>
             <button type="button" class="d-none d-lg-block showKeyboardBtn"></button>
         </div>
     </div>

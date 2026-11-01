@@ -1,3 +1,11 @@
+@php
+    // A reopened paper opens with whatever the student had already recorded.
+    // The visible state is rebuilt from this by script.js, which replays the
+    // same code path a click goes through, so the hidden value and what the
+    // student sees cannot drift apart.
+    $saved = ($savedAnswers ?? [])[$question->id] ?? null;
+    $savedJson = is_string($saved) && preg_match('/^\s*[\[{]/', $saved) ? trim($saved) : '{}';
+@endphp
 <div wire:ignore class="quiz-box py-4">
     <div class="row">
         <h4 class="m-0 fs-5 d-flex">
@@ -50,5 +58,5 @@
         @endif
     </div>
     <span class="text-danger text-error" id="answer.{{ $question->id }}.answer"></span>
-    <input id="question_{{ $question->id }}_answer" type="hidden" hidden name="answer[{{ $question->id }}][answer]" value='{}'>
+    <input id="question_{{ $question->id }}_answer" type="hidden" hidden name="answer[{{ $question->id }}][answer]" value="{{ $savedJson }}" data-saved="{{ $savedJson }}">
 </div>

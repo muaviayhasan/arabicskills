@@ -1,3 +1,10 @@
+@php
+    // A reopened paper plays back the recording the student made before. The
+    // recorder cannot be pre-loaded with it, so the submit keeps it unless
+    // they record again.
+    $saved = ($savedAnswers ?? [])[$question->id] ?? null;
+    $savedAudio = is_string($saved) && $saved !== '' ? read_image($saved) : null;
+@endphp
 <div wire:ignore class="quiz-box py-4">
     <div class="row">
         <div class="mb-4">
@@ -40,5 +47,11 @@
             <input type="text" name="answer[{{ $question->id }}][type]" value="speaking" hidden>
 
         </div>
+        @if ($savedAudio)
+            <div class="mt-3">
+                <p class="mb-2">What you recorded before. It is kept unless you record again.</p>
+                <audio controlsList="nodownload noplaybackrate" controls src="{{ $savedAudio }}"></audio>
+            </div>
+        @endif
     </div>
 </div>

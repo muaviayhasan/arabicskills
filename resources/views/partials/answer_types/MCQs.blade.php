@@ -1,3 +1,8 @@
+@php
+    // A reopened paper opens with whatever the student had already recorded,
+    // so they continue instead of starting the question again.
+    $saved = ($savedAnswers ?? [])[$question->id] ?? null;
+@endphp
 <div wire:ignore class="quiz-box py-4">
     <div class="row">
         <h4 class="fs-5 d-flex m-0">
@@ -24,7 +29,8 @@
                 <div class="col">
                     <div class="skill-box">
                         <label class="custom-radio">
-                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="a" />
+                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="a"
+                                @checked($saved === 'a') />
                             <span class="radio-btn d-md-flex align-items-center">
                                 <i class="fa-solid fa-check"></i>
                                 <h5 class="my-0">{{ $question->options['a'] }}</h5>
@@ -37,7 +43,8 @@
                 <div class="col">
                     <div class="skill-box">
                         <label class="custom-radio">
-                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="b" />
+                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="b"
+                                @checked($saved === 'b') />
                             <span class="radio-btn d-md-flex align-items-center">
                                 <i class="fa-solid fa-check"></i>
                                 <h5 class="my-0">{{ $question->options['b'] }}</h5>
@@ -50,7 +57,8 @@
                 <div class="col">
                     <div class="skill-box">
                         <label class="custom-radio">
-                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="c" />
+                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="c"
+                                @checked($saved === 'c') />
                             <span class="radio-btn d-md-flex align-items-center">
                                 <i class="fa-solid fa-check"></i>
                                 <h5 class="my-0">{{ $question->options['c'] }}</h5>
@@ -63,7 +71,8 @@
                 <div class="col">
                     <div class="skill-box">
                         <label class="custom-radio">
-                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="d" />
+                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="d"
+                                @checked($saved === 'd') />
                             <span class="radio-btn d-md-flex align-items-center">
                                 <i class="fa-solid fa-check"></i>
                                 <h5 class="my-0">{{ $question->options['d'] }}</h5>

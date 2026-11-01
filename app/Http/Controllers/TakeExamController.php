@@ -9,6 +9,7 @@ use App\Support\ExamSkillStatus;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -82,7 +83,7 @@ class TakeExamController extends Controller
      * Shared submit flow: resolve the attempt, write the answers, mark the
      * skill attempted.
      *
-     * @param  (callable(Request, int|string, array<string, mixed>): array{answer: mixed, type: string|null})|null  $prepare
+     * @param  (callable(Request, int|string, array<string, mixed>, list<string>, ?string): array{answer: mixed, type: string|null})|null  $prepare
      */
     private function save(Request $request, string $statusColumn, ?callable $prepare = null): JsonResponse
     {
@@ -101,17 +102,26 @@ class TakeExamController extends Controller
         try {
             DB::beginTransaction();
 
+            // Read once: used both to decide insert against update and to let
+            // a skill that cannot show the student their previous submission
+            // keep it rather than overwrite it with nothing.
+            $existing = TakeExam::query()
+                ->where('student_exam_id', $attempt->id)
+                ->get(['id', 'question_id', 'answer'])
+                ->keyBy('question_id');
+
             $prepared = [];
 
             foreach ($request->input('answer') ?? [] as $questionId => $answer) {
                 $answer = is_array($answer) ? $answer : ['answer' => $answer];
+                $previous = $existing[$questionId]->answer ?? null;
 
                 $prepared[$questionId] = $prepare === null
                     ? ['answer' => $answer['answer'] ?? '', 'type' => $answer['type'] ?? null]
-                    : $prepare($request, $questionId, $answer, $storedPaths);
+                    : $prepare($request, $questionId, $answer, $storedPaths, $previous);
             }
 
-            $this->recordAnswers($attempt, $prepared);
+            $this->recordAnswers($attempt, $prepared, $existing);
 
             $status = $attempt->{$statusColumn} ?? [];
             $status['status'] = 'attempted';
@@ -160,19 +170,15 @@ class TakeExamController extends Controller
      * students runs out of time at once. A first submit is two queries now.
      *
      * @param  array<int|string, array{answer: mixed, type: string|null}>  $answers
+     * @param  Collection<int, TakeExam>  $existing  rows already on this attempt, keyed by question
      */
-    private function recordAnswers(StudentExam $attempt, array $answers): void
+    private function recordAnswers(StudentExam $attempt, array $answers, $existing): void
     {
         if ($answers === []) {
             return;
         }
 
         $questionIds = array_keys($answers);
-
-        $existing = TakeExam::query()
-            ->where('student_exam_id', $attempt->id)
-            ->whereIn('question_id', $questionIds)
-            ->pluck('id', 'question_id');
 
         $fallbackTypes = Question::query()
             ->whereIn('id', $questionIds)
@@ -189,7 +195,7 @@ class TakeExamController extends Controller
             ];
 
             if (isset($existing[$questionId])) {
-                TakeExam::query()->whereKey($existing[$questionId])->update($row);
+                TakeExam::query()->whereKey($existing[$questionId]->id)->update($row);
 
                 continue;
             }
@@ -227,7 +233,7 @@ class TakeExamController extends Controller
      */
     private function writingAnswer(): callable
     {
-        return function (Request $request, $questionId, array $answer, array &$storedPaths): array {
+        return function (Request $request, $questionId, array $answer, array &$storedPaths, ?string $previous = null): array {
             if ($request->hasFile("answer.{$questionId}.answer.*")) {
                 $images = collect($request->file("answer.{$questionId}.answer"))
                     ->map(function ($image) use (&$storedPaths) {
@@ -240,10 +246,17 @@ class TakeExamController extends Controller
                 return ['answer' => serialize($images->toArray()), 'type' => 'writing'];
             }
 
-            return [
-                'answer' => $request->input("answer.{$questionId}.answer", ''),
-                'type' => 'writing',
-            ];
+            $typed = $request->input("answer.{$questionId}.answer", '');
+
+            // Uploaded pages cannot be put back into a file input, so on a
+            // reopened paper an empty submission here means "I did not upload
+            // again", not "throw away what I handed in". Typed answers are
+            // pre-filled in the form, so an empty one is a real deletion.
+            if (($typed === null || $typed === '') && is_string($previous) && $previous !== '') {
+                return ['answer' => $previous, 'type' => 'writing'];
+            }
+
+            return ['answer' => $typed, 'type' => 'writing'];
         };
     }
 
@@ -252,9 +265,11 @@ class TakeExamController extends Controller
      */
     private function speakingAnswer(): callable
     {
-        return function (Request $request, $questionId, array $answer, array &$storedPaths): array {
+        return function (Request $request, $questionId, array $answer, array &$storedPaths, ?string $previous = null): array {
             if (($answer['type'] ?? null) !== 'speaking' || empty($answer['answer'])) {
-                return ['answer' => '', 'type' => 'speaking'];
+                // A recorder cannot be loaded with the old audio, so silence
+                // on a reopened paper means "not re-recorded", not "discard".
+                return ['answer' => $previous ?? '', 'type' => 'speaking'];
             }
 
             $audio = base64_decode((string) $answer['answer'], true);

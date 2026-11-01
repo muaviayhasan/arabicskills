@@ -1,3 +1,11 @@
+@php
+    // A reopened paper opens with whatever the student had already recorded.
+    // The visible state is rebuilt from this by script.js, which replays the
+    // same code path a click goes through, so the hidden value and what the
+    // student sees cannot drift apart.
+    $saved = ($savedAnswers ?? [])[$question->id] ?? null;
+    $savedJson = is_string($saved) && preg_match('/^\s*[\[{]/', $saved) ? trim($saved) : '{}';
+@endphp
 <div wire:ignore class="quiz-box py-4">
     <div class="row">
         <h4 class="m-0 fs-5">
@@ -34,12 +42,12 @@
         </h5>
 
         <div id="dropzone_{{ $question->id }}" class="dropzone mt-3" dir="{{ $dir }}"
-            data-question-id="{{ $question->id }}">
+            data-question-id="{{ $question->id }}" data-saved="{{ $savedJson }}">
             <div class="dropzone-placeholder float-start">Selected words will appear here in order</div>
         </div>
 
         <input id="question_{{ $question->id }}_answer" type="hidden" name="answer[{{ $question->id }}][answer]"
-            value="{}">
+            value="{{ $savedJson }}">
         <span class="text-danger text-error" id="answer.{{ $question->id }}.answer"></span>
 
     </div>

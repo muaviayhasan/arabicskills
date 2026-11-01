@@ -1,3 +1,8 @@
+@php
+    // A reopened paper opens with whatever the student had already recorded,
+    // so they continue instead of starting the question again.
+    $saved = ($savedAnswers ?? [])[$question->id] ?? null;
+@endphp
 <div wire:ignore class="quiz-box py-4">
     <div class="row">
         <h4 class="m-0 fs-5 d-flex">
@@ -22,7 +27,8 @@
                 <div class="col">
                     <div class="skill-box">
                         <label class="custom-radio">
-                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="F" />
+                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="F"
+                                @checked($saved === 'F') />
                             <span class="radio-btn d-md-flex align-items-center">
                                 <i class="fa-solid fa-check"></i>
                                 <h5 class="my-0">False / خطأ </h5>
@@ -33,7 +39,8 @@
                 <div class="col">
                     <div class="skill-box">
                         <label class="custom-radio">
-                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="T" />
+                            <input type="radio" name="answer[{{ $question->id }}][answer]" value="T"
+                                @checked($saved === 'T') />
                             <span class="radio-btn d-md-flex align-items-center">
                                 <i class="fa-solid fa-check"></i>
                                 <h5 class="my-0">True / صح</h5>

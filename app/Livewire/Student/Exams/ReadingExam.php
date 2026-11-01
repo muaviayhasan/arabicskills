@@ -26,6 +26,9 @@ class ReadingExam extends Component
 
     public $remainingSeconds;
 
+    /** @var array<int, string> answers already recorded, keyed by question id */
+    public array $savedAnswers = [];
+
     public function mount()
     {
         if ($redirect = $this->redirectIfPlacementIncomplete()) {
@@ -102,6 +105,9 @@ class ReadingExam extends Component
 
         // Remaining seconds (never negative)
         $this->remainingSeconds = max(now()->diffInSeconds($end, false), 0);
+
+        // A reopened paper opens with whatever the student had already done.
+        $this->savedAnswers = $this->recordedAnswers($this->student_exam);
     }
 
     #[On('expireExam')]

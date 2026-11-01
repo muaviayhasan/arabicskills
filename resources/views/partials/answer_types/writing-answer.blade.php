@@ -1,3 +1,22 @@
+@php
+    // A reopened paper shows what the student handed in before.
+    //
+    // A typed answer goes straight back into the textarea. Uploaded pages
+    // cannot be put back into a file input, so they are shown underneath it
+    // instead, and the submit keeps them unless new ones are uploaded.
+    $saved = ($savedAnswers ?? [])[$question->id] ?? null;
+    $savedPages = [];
+    $savedText = null;
+
+    if (is_string($saved) && $saved !== '') {
+        $unserialized = @unserialize($saved);
+        if (is_array($unserialized)) {
+            $savedPages = $unserialized;
+        } else {
+            $savedText = $saved;
+        }
+    }
+@endphp
 <div wire:ignore class="quiz-box py-4">
     <div class="row">
         <h4 class="m-0 ms-5 fs-5 d-flex">
@@ -57,6 +76,17 @@
                                     data-prev="imagePreview_{{ $question->id }}" multiple accept="image/*">
                                 <div class="mt-4 d-flex flex-wrap align-items-center"
                                     id="imagePreview_{{ $question->id }}"></div>
+                                @if ($savedPages)
+                                    <div class="mt-3">
+                                        <p class="mb-2">What you handed in before. It is kept unless you upload again.</p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach ($savedPages as $page)
+                                                <img src="{{ read_image($page) }}" alt="Page you uploaded earlier"
+                                                    style="max-height: 160px;" class="border rounded">
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                                 <span class="text-danger"></span>
                             </div>
 
@@ -67,7 +97,7 @@
 
                                 <div class="form-area">
                                     <textarea name="answer[{{ $question->id }}][answer]" class="form-control anstextarea no-copy-paste"
-                                        placeholder="Leave a comment here" style="height: 100px" id="textInput_{{ $question->id }}"></textarea>
+                                        placeholder="Leave a comment here" style="height: 100px" id="textInput_{{ $question->id }}">{{ $savedText }}</textarea>
 
 
                                     <button type="button" class="d-none d-lg-block showKeyboardBtn"></button>

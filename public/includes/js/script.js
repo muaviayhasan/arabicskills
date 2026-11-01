@@ -52,6 +52,45 @@ $(document).ready(function () {
     // Remove selection from the option
     $selectedOption.removeClass('selected');
   });
+
+  // ==========================put saved matches back
+  //
+  // A reopened paper arrives with the pairs the student had already made.
+  // Each one goes through handleClickMatch, the same function a click uses,
+  // so the hidden value, the tooltip and the "matched" state all come from
+  // one place. The stored shape is { choice: answer }.
+  $('input[type=hidden][data-saved]').each(function () {
+    const $input = $(this);
+    let saved;
+
+    try {
+      saved = JSON.parse($input.attr('data-saved') || '{}');
+    } catch (e) {
+      return;
+    }
+
+    if (!saved || typeof saved !== 'object') return;
+
+    const $quizBox = $input.closest('.quiz-box');
+
+    Object.keys(saved).forEach(function (choice) {
+      const answer = saved[choice];
+
+      const $box = $quizBox.find('.match-word-box').filter(function () {
+        const key = $(this).attr('data-choice') || $(this).attr('data-activity');
+        return key === choice;
+      }).first();
+
+      const $option = $quizBox.find('.clickable-match').filter(function () {
+        return $(this).attr('data-answer') === answer;
+      }).first();
+
+      if ($box.length === 0 || $option.length === 0) return;
+      if ($box.children('.tooltip').length > 0) return;
+
+      handleClickMatch($box, $option);
+    });
+  });
 });
 
 function handleClickMatch($matchBox, $matchOption) {
@@ -722,6 +761,48 @@ document.addEventListener("DOMContentLoaded", () => {
         updateRearrangeAnswer(dropzone, input);
       }
     });
+  });
+
+  /* =========================
+     PUT A SAVED ORDER BACK
+
+     A reopened paper arrives with the words the student had already chosen,
+     in the order they chose them. Each one is moved exactly as a click would
+     move it, so the hidden value and what is on screen cannot disagree. The
+     pool is shuffled on every render, so words are matched by their text.
+  ========================== */
+  document.querySelectorAll(".dropzone[data-saved]").forEach(dropzone => {
+    let saved;
+
+    try {
+      saved = JSON.parse(dropzone.dataset.saved || "[]");
+    } catch (e) {
+      return;
+    }
+
+    if (!Array.isArray(saved) || saved.length === 0) return;
+
+    const quizBox = dropzone.closest(".quiz-box");
+    if (!quizBox) return;
+
+    const pool = quizBox.querySelector(".wordContainer");
+    const input = quizBox.querySelector("input[type='hidden']");
+    if (!pool || !input) return;
+
+    saved.forEach(text => {
+      const wanted = String(text).trim();
+
+      const word = Array.from(pool.querySelectorAll(".clickable-word"))
+        .find(w => !w.classList.contains("in-dropzone") && w.textContent.trim() === wanted);
+
+      if (!word) return;
+
+      word.classList.add("in-dropzone");
+      addRemoveButtonToWord(word, pool, dropzone, input);
+      dropzone.appendChild(word);
+    });
+
+    updateRearrangeAnswer(dropzone, input);
   });
 
 });
