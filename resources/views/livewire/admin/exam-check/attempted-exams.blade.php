@@ -118,15 +118,20 @@
                 Exporting...
             </span>
         </button>
-        <button wire:click="reassignAllExpired" class="btn btn-danger" wire:loading.attr="disabled">
-            <span wire:loading.remove wire:target="reassignAllExpired">
-                <i class="fa fa-redo"></i> Re-assign All Expired Attempts
-            </span>
-            <span wire:loading wire:target="reassignAllExpired">
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                Re-assigning...
-            </span>
-        </button>
+        {{-- Hands papers back to every student at once, so it asks first and
+             needs the same permission as reopening one row. --}}
+        @if ($canReopen)
+            <button wire:click="confirmReassignAllExpired" class="btn btn-danger" wire:loading.attr="disabled"
+                wire:target="confirmReassignAllExpired,reassignAllExpired">
+                <span wire:loading.remove wire:target="confirmReassignAllExpired,reassignAllExpired">
+                    <i class="fa fa-redo"></i> Re-assign All Expired Attempts
+                </span>
+                <span wire:loading wire:target="confirmReassignAllExpired,reassignAllExpired">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Re-assigning...
+                </span>
+            </button>
+        @endif
     </x-admin.list-toolbar>
 
     <div class="row">

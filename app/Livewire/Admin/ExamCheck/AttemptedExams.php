@@ -162,23 +162,92 @@ class AttemptedExams extends Component
             });
     }
 
-    public function reassignAllExpired()
+    /**
+     * Every expired attempt this admin can see, as a query.
+     *
+     * The sweep used to run over StudentExam::query() with no scope at all, so
+     * an admin tied to one school reset expired skills for every school in the
+     * system. Per-row reopening has always been scoped; this now matches it.
+     */
+    private function expiredAttemptsQuery()
     {
-        $columns = [
-            'reading_status',
-            'listening_status',
-            'writing_status',
-            'speaking_status',
-            'sentences_structures_status',
-        ];
-
-        StudentExam::query()
-            ->where(function ($query) use ($columns) {
-                foreach ($columns as $column) {
+        return StudentExam::query()
+            ->when($this->currentAdminSchoolId() !== null, function ($query) {
+                $query->whereRelation('Exam', 'school_id', $this->currentAdminSchoolId());
+            })
+            ->where('checked', false)
+            ->where(function ($query) {
+                foreach (array_keys(ExamSkillStatus::SKILL_LABELS) as $column) {
                     $query->orWhere($column, 'like', '%expired%');
                 }
-            })
-            ->chunkById(200, function ($exams) use ($columns) {
+            });
+    }
+
+    /**
+     * The sweep hands papers back to every student at once, so it asks first
+     * and says how many rows it is about to touch. It used to fire on the
+     * click, silently, for anyone who could open the page.
+     */
+    public function confirmReassignAllExpired()
+    {
+        if (! getPermissions('results', 'edit')) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'error',
+                title: 'You do not have permission to reopen an exam.'
+            );
+
+            return;
+        }
+
+        $affected = $this->expiredAttemptsQuery()->count();
+
+        if ($affected === 0) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'info',
+                title: 'Nothing to re-assign',
+                text: 'No exam on this list has a skill marked expired.'
+            );
+
+            return;
+        }
+
+        $scope = $this->currentAdminSchoolId() === null
+            ? 'across every school'
+            : 'in your school';
+
+        $this->dispatch(
+            'confirmReopen',
+            title: 'Re-assign every expired attempt?',
+            text: $affected.' '.($affected === 1 ? 'exam has' : 'exams have').' a skill marked expired '.$scope
+                .'. Every one of those skills will be unlocked, for every student at once, and the clock starts again'
+                .' from zero when each student opens it. Answers already submitted are kept. To hand a paper back to'
+                .' one student instead, use the Reopen button on their row.',
+            id: 0,
+            emitBack: 'doReassignAllExpired',
+            confirmButtonText: 'Yes, re-assign all',
+        );
+    }
+
+    #[On('doReassignAllExpired')]
+    public function reassignAllExpired()
+    {
+        if (! getPermissions('results', 'edit')) {
+            $this->dispatch(
+                'swal:alert',
+                icon: 'error',
+                title: 'You do not have permission to reopen an exam.'
+            );
+
+            return;
+        }
+
+        $columns = array_keys(ExamSkillStatus::SKILL_LABELS);
+        $reopened = 0;
+
+        $this->expiredAttemptsQuery()
+            ->chunkById(200, function ($exams) use ($columns, &$reopened) {
                 foreach ($exams as $exam) {
                     $updates = [];
 
@@ -192,10 +261,17 @@ class AttemptedExams extends Component
 
                     if ($updates) {
                         StudentExam::where('id', $exam->id)->update($updates);
+                        $reopened++;
                     }
                 }
             });
 
+        $this->dispatch(
+            'swal:alert',
+            icon: 'success',
+            title: 'Expired attempts re-assigned',
+            text: $reopened.' '.($reopened === 1 ? 'exam was' : 'exams were').' handed back to their students.'
+        );
     }
 
     /**
