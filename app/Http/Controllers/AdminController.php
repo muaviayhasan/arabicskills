@@ -12,18 +12,29 @@ use Illuminate\Support\Facades\Auth;
 class AdminController extends Controller
 {
     /**
-     * Clear the caches and build them again.
+     * Clear the caches, and on production build them again.
      *
-     * Clearing on its own leaves the site parsing every config file and
-     * compiling the whole route table on each request, which is slower than
-     * before it was cleared, so this rebuilds what it just dropped.
+     * Clearing alone leaves production parsing every config file and compiling
+     * the whole route table on each request, which is slower than before it
+     * was cleared, so there it rebuilds what it just dropped.
+     *
+     * Nowhere else, though. Building a config cache freezes whichever
+     * environment did the building, and the test suite exercises this route:
+     * it baked APP_ENV=testing and SESSION_DRIVER=array into
+     * bootstrap/cache/config.php and left it there, so the running app got the
+     * array session driver, nothing persisted, the CSRF token could never
+     * match the session, and every Livewire request came back as "This page
+     * has expired". A developer who ran the tests then opened the site could
+     * not sign in at all.
      */
     public function refreshCaches()
     {
         Artisan::call('optimize:clear');
 
-        foreach (['config:cache', 'route:cache', 'view:cache'] as $command) {
-            Artisan::call($command);
+        if (app()->isProduction()) {
+            foreach (['config:cache', 'route:cache', 'view:cache'] as $command) {
+                Artisan::call($command);
+            }
         }
 
         return redirect()->route('admin.dashboard');

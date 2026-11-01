@@ -63,6 +63,33 @@ class ExposedEndpointsTest extends TestCase
     }
 
     /**
+     * Only production gets its caches rebuilt.
+     *
+     * This route used to rebuild them everywhere, and this very test suite
+     * calls it, so a test run wrote APP_ENV=testing and SESSION_DRIVER=array
+     * into bootstrap/cache/config.php and left it there. The running app then
+     * read the array session driver, nothing persisted, the CSRF token could
+     * never match the session, and every Livewire request answered "This page
+     * has expired" -- nobody could sign in until the cache was cleared by
+     * hand. Building a config cache outside production is the bug.
+     */
+    public function test_clearing_the_caches_does_not_build_them_outside_production(): void
+    {
+        $this->assertFalse(app()->isProduction(), 'the suite must not run as production');
+
+        $this->actingAs($this->admin(), 'admin')->get('/clear-cache');
+
+        $this->assertFileDoesNotExist(
+            app()->getCachedConfigPath(),
+            'a config cache built here would freeze the testing environment into the app'
+        );
+        $this->assertFileDoesNotExist(
+            app()->getCachedRoutesPath(),
+            'a route cache built here would outlive the test run'
+        );
+    }
+
+    /**
      * The log viewer denies nobody until it is told how to decide: with no
      * auth callback and no viewLogViewer gate its own auth() falls through
      * every branch. The UI and the API both answered anonymous requests, and
