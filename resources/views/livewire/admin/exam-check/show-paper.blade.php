@@ -220,16 +220,39 @@
                 <strong>Q-> {!! $question->question !!} </strong>
                 <div class="row g-2">
                     @php
+                        // A writing answer is either photographs of handwritten
+                        // work, kept as a serialized list of upload ids, or text
+                        // typed on the keyboard tab, kept as plain text. This
+                        // unserialized it either way, and unserialize() on typed
+                        // text raises a warning that Laravel turns into an
+                        // exception, so one student typing their answer took the
+                        // whole marking page down with a 500.
+                        $raw = $question->TakeExam->answer;
+                        $pages = [];
+                        $typed = null;
 
-                    $anses = is_string($question->TakeExam->answer)
-                    ? unserialize($question->TakeExam->answer)
-                    : [];
+                        if (is_string($raw) && $raw !== '') {
+                            $decoded = preg_match('/^a:\d+:\{/', $raw) === 1 ? @unserialize($raw) : false;
 
+                            if (is_array($decoded)) {
+                                $pages = $decoded;
+                            } else {
+                                $typed = $raw;
+                            }
+                        }
                     @endphp
                     <div class="col-12" style="max-height: 400px; overflow-y: auto;">
-                        @foreach ($anses as $an)
-                        <img src="{{ read_image($an) }}" alt="" class="w-100">
-                        @endforeach
+                        @if ($pages)
+                            @foreach ($pages as $an)
+                                <img src="{{ read_image($an) }}" alt="" class="w-100">
+                            @endforeach
+                        @elseif ($typed !== null)
+                            <div class="rounded form-control alert-primary">{!! nl2br(e($typed)) !!}</div>
+                        @else
+                            <div class="alert alert-danger text-center">
+                                Student not attempted this question or answer not found
+                            </div>
+                        @endif
                     </div>
 
                     <div class="col-12">
