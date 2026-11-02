@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\Question;
+use App\Support\UploadRules;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -60,10 +61,16 @@ class QuestionBankController extends Controller
             'activity.grade_id' => ['required', Rule::exists('grades', 'id')->whereNotNull('number')],
             'activity.term' => 'required',
             'activity.lang' => 'required|in:english,arabic',
-            'activity.image' => 'nullable|file',
-            'activity.activity' => 'required',
+            // Was 'nullable|file', which accepts a .php as readily as a .png.
+            'activity.image' => UploadRules::image(),
+            // Text for a reading passage, an audio file for a listening one.
+            'activity.activity' => array_merge(['required'], UploadRules::audioIfUploaded()),
             'question.*.question' => 'required',
-            'question.*.image' => 'nullable|image|mimes:png,jpg,webp,jpeg',
+            'question.*.image' => UploadRules::image(),
+            // A match option is a word or a picture. These carried no rules
+            // at all, so whatever was sent was stored and then served.
+            'question.*.options.choice.*' => UploadRules::imageIfUploaded(),
+            'question.*.options.answer.*' => UploadRules::imageIfUploaded(),
         ]);
 
         if ($validated->fails()) {
@@ -177,16 +184,21 @@ class QuestionBankController extends Controller
 
         $validated = Validator::make($request->all(), [
             'activity.type' => 'required',
-            'activity.activity' => 'nullable|required_unless:activity.type,listening',
+            'activity.activity' => array_merge(
+                ['nullable', 'required_unless:activity.type,listening'],
+                UploadRules::audioIfUploaded()
+            ),
             'activity.level_id' => 'required|exists:levels,id',
             'activity.grade_id' => ['required', Rule::exists('grades', 'id')->whereNotNull('number')],
             'activity.term' => 'required',
             'activity.lang' => 'required|in:english,arabic',
             'activity.title' => 'required',
-            'activity.image' => 'nullable|image|mimes:png,jpg,webp,jpeg',
+            'activity.image' => UploadRules::image(),
 
             'question.*.question' => 'required',
-            'question.*.image' => 'nullable|image|mimes:png,jpg,webp,jpeg',
+            'question.*.image' => UploadRules::image(),
+            'question.*.options.choice.*' => UploadRules::imageIfUploaded(),
+            'question.*.options.answer.*' => UploadRules::imageIfUploaded(),
         ]);
 
         if ($validated->fails()) {

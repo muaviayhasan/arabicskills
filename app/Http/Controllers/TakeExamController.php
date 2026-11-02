@@ -6,6 +6,7 @@ use App\Models\Question;
 use App\Models\StudentExam;
 use App\Models\TakeExam;
 use App\Support\ExamSkillStatus;
+use App\Support\UploadRules;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class TakeExamController extends Controller
 {
@@ -46,6 +48,24 @@ class TakeExamController extends Controller
 
     public function saveWritingExam(Request $request): JsonResponse
     {
+        // Handed-in pages are the one upload a student can make, and they
+        // went to disk unchecked: store() keeps the file's own extension and
+        // the directory is served over http, so a .php uploaded here would
+        // have been a web shell anyone with a student login could plant.
+        //
+        // The wildcard expands to nothing when the answer is typed text
+        // rather than a list of files, so a keyboard answer is unaffected.
+        $check = Validator::make($request->all(), [
+            'answer.*.answer.*' => UploadRules::image(),
+        ]);
+
+        if ($check->fails()) {
+            return response()->json([
+                'message' => 'Those files could not be accepted. Please upload photographs of your work.',
+                'errors' => $check->errors(),
+            ], 422);
+        }
+
         return $this->save($request, 'writing_status', $this->writingAnswer());
     }
 

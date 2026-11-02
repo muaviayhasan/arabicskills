@@ -1,0 +1,26 @@
+# Uploaded files. They are data, never code.
+#
+# This directory is symlinked into the web root as /uploads, so anything here
+# is reachable over http. Every directive is wrapped so that a server without
+# the module simply skips it: a directive Apache does not understand turns the
+# whole directory into a 500, and this one serves a live exam.
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+<FilesMatch "\.(?i:php[0-9]?|phtml|phps|phar|pl|py|cgi|sh|shtml|asp|aspx|jsp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

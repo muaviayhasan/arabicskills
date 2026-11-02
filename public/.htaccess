@@ -5,6 +5,15 @@
 
     RewriteEngine On
 
+    # Nothing under /uploads is ever executed. That directory holds files
+    # people upload, store() keeps whatever extension they came with, and it
+    # is served straight off the web root through a symlink, so a .php written
+    # there was run by the server: that is how a web shell came to sit at
+    # /uploads/cacheohhhpk.php. Serving these files is the point; running them
+    # never is. Validation keeps them out, this makes them harmless if one
+    # ever gets in.
+    RewriteRule ^uploads/.*\.(php[0-9]?|phtml|phps|phar|pl|py|cgi|sh|shtml|asp|aspx|jsp)$ - [F,L,NC]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
