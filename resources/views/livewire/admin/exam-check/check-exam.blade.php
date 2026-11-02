@@ -156,11 +156,18 @@
                         <span class="rounded form-control alert-primary">
                             <span class="text-secondary">Answer : </span>
                             @php
-                            $answerRerrange = !is_null($question->TakeExam->answer)
-                            ? json_decode($question->TakeExam->answer)
-                            : [];
-
-                            $answerRerrange = !empty($answerRerrange) ? $answerRerrange : [];
+                            // Read through the relation, not into it: a question the
+                            // student skipped has no take_exams row at all, and
+                            // reaching through a null one took this page down.
+                            //
+                            // And kept to an array whatever comes back. json_decode
+                            // of anything that is not a JSON array hands back a
+                            // scalar or null, which the loop below cannot walk.
+                            $rearrangeRaw = optional($question->TakeExam)->answer;
+                            $decodedRerrange = is_string($rearrangeRaw) && $rearrangeRaw !== ''
+                                ? json_decode($rearrangeRaw, true)
+                                : null;
+                            $answerRerrange = is_array($decodedRerrange) ? $decodedRerrange : [];
 
                             @endphp
 
@@ -270,11 +277,14 @@
                 </div>
                 <div class="row justify-content-center align-items-center g-2">
                     @php
-                    $answerMatched = !is_null($question->TakeExam->answer)
-                    ? json_decode($question->TakeExam->answer)
-                    : [];
-
-                    $answerMatched = !empty($answerMatched) ? $answerMatched : [];
+                    // Same two guards as the rearrange branch: never reach through
+                    // a missing take_exams row, and never hand the loop below
+                    // something that is not an array.
+                    $matchedRaw = optional($question->TakeExam)->answer;
+                    $decodedMatched = is_string($matchedRaw) && $matchedRaw !== ''
+                        ? json_decode($matchedRaw, true)
+                        : null;
+                    $answerMatched = is_array($decodedMatched) ? $decodedMatched : [];
 
                     @endphp
 

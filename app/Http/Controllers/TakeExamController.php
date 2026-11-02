@@ -71,6 +71,32 @@ class TakeExamController extends Controller
 
     public function saveSpeakingExam(Request $request): JsonResponse
     {
+        // A recording that will not decode used to throw inside the
+        // transaction, which rolled back the whole paper and answered the
+        // student with a 500: one unreadable clip cost them every other
+        // question too. Checked up front instead, so the rest of the paper is
+        // never at risk and the student is told which part to record again.
+        foreach ($request->input('answer') ?? [] as $questionId => $answer) {
+            if (! is_array($answer) || ($answer['type'] ?? null) !== 'speaking') {
+                continue;
+            }
+
+            $audio = $answer['answer'] ?? '';
+
+            if ($audio === '' || $audio === null) {
+                continue;
+            }
+
+            if (! is_string($audio) || base64_decode($audio, true) === false) {
+                return response()->json([
+                    'message' => 'One of your recordings could not be read. Please record that question again, then submit.',
+                    'errors' => [
+                        "answer.{$questionId}.answer" => ['This recording could not be read. Please record it again.'],
+                    ],
+                ], 422);
+            }
+        }
+
         return $this->save($request, 'speaking_status', $this->speakingAnswer());
     }
 

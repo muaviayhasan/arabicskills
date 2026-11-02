@@ -106,11 +106,18 @@
                         <span class="rounded form-control alert-primary">
                             <span class="text-secondary">Answer : </span>
                             @php
-                            $answerRerrange = !is_null($question->TakeExam->answer)
-                            ? json_decode($question->TakeExam->answer)
-                            : [];
-
-                            $answerRerrange = !empty($answerRerrange) ? $answerRerrange : [];
+                            // Read through the relation, not into it: a question the
+                            // student skipped has no take_exams row at all, and
+                            // reaching through a null one took this page down.
+                            //
+                            // And kept to an array whatever comes back. json_decode
+                            // of anything that is not a JSON array hands back a
+                            // scalar or null, which the loop below cannot walk.
+                            $rearrangeRaw = optional($question->TakeExam)->answer;
+                            $decodedRerrange = is_string($rearrangeRaw) && $rearrangeRaw !== ''
+                                ? json_decode($rearrangeRaw, true)
+                                : null;
+                            $answerRerrange = is_array($decodedRerrange) ? $decodedRerrange : [];
 
                             @endphp
 
