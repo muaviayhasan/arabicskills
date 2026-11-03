@@ -460,7 +460,7 @@ class AllQuestionBanks extends Component
             ->orderByRaw('TRIM(type) ASC')
             ->pluck('type');
 
-        $terms = unserialize(config('options.terms')) ?: [];
+        $terms = exam_terms();
 
         $adminSchoolId = $this->currentAdminSchoolId();
 

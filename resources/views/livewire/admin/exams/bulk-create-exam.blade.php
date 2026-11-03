@@ -29,7 +29,7 @@
                             <label class="form-label fw-semibold">Term / Round <span class="text-danger">*</span></label>
                             <select wire:model.live="inputs.term" class="form-select">
                                 <option value="">Select term</option>
-                                @foreach (unserialize(config('options.terms')) as $term)
+                                @foreach (exam_terms() as $term)
                                     <option value="{{ $term }}">{{ $term }}</option>
                                 @endforeach
                             </select>

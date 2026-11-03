@@ -43,7 +43,7 @@
                             <h6>Term</h6>
                             <select wire:model.defer="inputs.term" class="form-control">
                                 <option value="">Select term of exam</option>
-                                @foreach (unserialize(config('options.terms')) as $term)
+                                @foreach (exam_terms() as $term)
                                     <option value="{{ $term }}">{{ $term }}</option>
                                 @endforeach
                             </select>

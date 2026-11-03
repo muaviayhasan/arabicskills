@@ -61,7 +61,7 @@
                                 <h6>Term</h6>
                                 <select name="activity[term]" class="form-control">
                                     <option value="">Select Term</option>
-                                    @foreach (unserialize(config('options.terms')) as $term)
+                                    @foreach (exam_terms() as $term)
                                         <option {{ $term == $activity->term ? 'selected' : '' }} value="{{ $term }}">{{ $term }}</option>
                                     @endforeach
                                 </select>

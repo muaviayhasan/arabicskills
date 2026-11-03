@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Option;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +43,10 @@ class CleanupLegacyLevelColumns
 
         $deleted = DB::table('options')->where('key', 'levels')->delete();
         $report['options_levels_deleted'] = $deleted > 0;
+
+        // Written straight through the query builder, so the model event that
+        // normally clears the settings memo never fires.
+        Option::forgetSettings();
 
         $this->writeReport($report);
         Log::info('CleanupLegacyLevelColumns completed', $report);

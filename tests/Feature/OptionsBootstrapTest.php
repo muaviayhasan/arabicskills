@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Option;
+use App\Providers\AppServiceProvider;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 /**
@@ -119,13 +121,36 @@ class OptionsBootstrapTest extends TestCase
     }
 
     /**
-     * Settings are a convenience, not a dependency. If they cannot be read the
-     * page still has to render, because this runs on every request.
+     * Settings are a convenience, not a dependency: if they cannot be read,
+     * the request still has to go through, because this runs on every one.
+     *
+     * Calls the provider directly. The first version of this test made a
+     * request instead, which proved nothing: the application has already
+     * booted by the time a test body runs, so the mock never reached the code
+     * it was meant to break, and the test passed with the catch deleted.
      */
-    public function test_a_failure_to_load_settings_does_not_break_the_page(): void
+    public function test_a_failure_to_load_settings_is_logged_and_swallowed(): void
     {
-        Cache::shouldReceive('remember')->andThrow(new \RuntimeException('database gone'));
+        Cache::shouldReceive('remember')->once()->andThrow(new \RuntimeException('database gone'));
+        Log::shouldReceive('warning')->once();
 
-        $this->get('/login')->assertOk();
+        (new AppServiceProvider($this->app))->loadAdminSettings();
+    }
+
+    /**
+     * Terms are a serialized string, so a missing or damaged one must not be
+     * handed to a foreach. Coalescing the result is not enough: unserialize
+     * raises a warning on a malformed string and Laravel turns that into an
+     * exception.
+     */
+    public function test_exam_terms_is_always_an_array(): void
+    {
+        config()->set('options.terms', serialize(['Round One', 'Round Two']));
+        $this->assertSame(['Round One', 'Round Two'], exam_terms());
+
+        foreach ([null, '', 'garbage', serialize('a string'), 123] as $broken) {
+            config()->set('options.terms', $broken);
+            $this->assertSame([], exam_terms(), 'a broken value must still give an array');
+        }
     }
 }

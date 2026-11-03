@@ -18,7 +18,7 @@
                             <label class="form-label fw-semibold">Exam Round <small class="text-muted">(optional)</small></label>
                             <select wire:model.live="term" class="form-select bg-light border-light rounded">
                                 <option value="">-- All Rounds --</option>
-                                @foreach (unserialize(config('options.terms')) as $t)
+                                @foreach (exam_terms() as $t)
                                     <option value="{{ $t }}">{{ $t }}</option>
                                 @endforeach
                             </select>

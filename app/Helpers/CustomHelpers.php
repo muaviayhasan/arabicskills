@@ -122,6 +122,28 @@ if (! function_exists('delete_image')) {
     }
 }
 
+if (! function_exists('exam_terms')) {
+    /**
+     * The exam terms the admin configured, always an array.
+     *
+     * Kept behind one function because getting it wrong takes a page down.
+     * The value is a serialized string in the options table, so a missing one
+     * unserializes to false and any foreach over it is a 500. Coalescing the
+     * result is not enough either: a malformed string makes unserialize raise
+     * a warning, and Laravel turns warnings into exceptions, so the string is
+     * checked before it is handed over rather than after.
+     *
+     * @return list<string>
+     */
+    function exam_terms(): array
+    {
+        $raw = config('options.terms');
+        $terms = is_string($raw) && $raw !== '' ? @unserialize($raw) : false;
+
+        return is_array($terms) ? array_values($terms) : [];
+    }
+}
+
 if (! function_exists('current_academic_year')) {
     function current_academic_year(): int
     {

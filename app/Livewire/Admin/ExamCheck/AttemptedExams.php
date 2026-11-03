@@ -584,7 +584,7 @@ class AttemptedExams extends Component
             ->orderBy('number')
             ->get(['id', 'name', 'number']);
 
-        $terms = collect(unserialize(config('options.terms')) ?: [])
+        $terms = collect(exam_terms())
             ->merge(
                 Exam::query()
                     ->applyArchiveFilters($this->archiveStatus)

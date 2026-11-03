@@ -59,6 +59,19 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
+        $this->loadAdminSettings();
+    }
+
+    /**
+     * Kept out of boot() so that it can be exercised.
+     *
+     * A test always counts as running in console and boot() returns early
+     * there, so the guard above would make the fallback below impossible to
+     * cover: the first version of its test passed just as happily with the
+     * catch deleted, which is worse than having no test at all.
+     */
+    public function loadAdminSettings(): void
+    {
         try {
             Option::applyToConfig();
         } catch (\Throwable $e) {
