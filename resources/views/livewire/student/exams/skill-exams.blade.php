@@ -114,7 +114,49 @@
                     </div>
                 @endif
 
-                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+                @php
+                    /**
+                     * How each skill presents itself: its colour, its icon and
+                     * its picture, kept together so a skill is one entry here
+                     * rather than rules scattered through the stylesheet.
+                     *
+                     * The colours are not the obvious ones. White on the
+                     * natural green and teal of the reference measures 4.10:1
+                     * and 3.51:1, under the 4.5:1 that button text needs, so
+                     * each is the nearest shade that passes.
+                     *
+                     * The photographs come from the AST Arabic site, which
+                     * already carried this design: five already cropped and
+                     * compressed, 89KB for all of them against the 994KB of
+                     * illustrations they replace. Their width and height are
+                     * recorded so the card can take each photograph's own
+                     * proportions and crop nothing, and so nothing shifts
+                     * while they load.
+                     *
+                     * A skill listed without an 'art' falls back to its colour
+                     * and a large icon, which reads as a decision rather than
+                     * a missing file.
+                     */
+                    $skillArt = [
+                        'reading' => ['colour' => '#0b63ce', 'deep' => '#0848a0', 'icon' => 'fa-book-open', 'art' => 'reading.jpg', 'w' => 338, 'h' => 222],
+                        'listening' => ['colour' => '#6b21a8', 'deep' => '#4c1580', 'icon' => 'fa-headphones', 'art' => 'listening.jpg', 'w' => 336, 'h' => 222],
+                        'writing' => ['colour' => '#3f7a16', 'deep' => '#2f5e0f', 'icon' => 'fa-pencil', 'art' => 'writing.jpg', 'w' => 336, 'h' => 222],
+                        'speaking' => ['colour' => '#0b7f99', 'deep' => '#086478', 'icon' => 'fa-comments', 'art' => 'speaking.jpg', 'w' => 528, 'h' => 210],
+                        'sentences_structures' => ['colour' => '#c2185b', 'deep' => '#9c1149', 'icon' => 'fa-sitemap', 'art' => 'sentences_structures.jpg', 'w' => 558, 'h' => 210],
+                    ];
+                @endphp
+
+                @php
+                    // The layout depends on how many cards there are, so it has
+                    // to be known before the loop: a skill with nothing for this
+                    // student's level is skipped below.
+                    $shownSkills = array_values(array_filter(
+                        $activities,
+                        fn ($skill) => count($skillActivities[$skill] ?? []) > 0
+                    ));
+                @endphp
+
+                <div class="ast-skills ast-skills--{{ count($shownSkills) }}">
                     @foreach ($activities as $activity)
                         @php
                             $activityIds = $skillActivities[$activity] ?? [];
@@ -128,63 +170,114 @@
                             // Worked out for every skill at once in the component.
                             $hasMissingAnswers = $missingAnswers[$activity] ?? false;
 
+                            $art = $skillArt[$activity] ?? ['colour' => '#0b63ce', 'deep' => '#0848a0', 'icon' => 'fa-book-open', 'art' => null, 'w' => 338, 'h' => 222];
+                            $english = $activityLabels[$activity] ?? ucfirst(str_replace('_', ' ', $activity));
+                            $arabic = $activityTranslations[$activity] ?? '';
+
                             $statusClass = match ($status) {
                                 'attempted' => 'is-attempted',
                                 'expired' => 'is-expired',
                                 default => 'is-unattempted',
                             };
+
+                            $statusLabel = match ($status) {
+                                'attempted' => 'Completed',
+                                'expired' => 'Expired',
+                                default => 'Not started',
+                            };
+
+                            $statusIcon = match ($status) {
+                                'attempted' => 'fa-circle-check',
+                                'expired' => 'fa-circle-xmark',
+                                default => 'fa-circle-dot',
+                            };
                         @endphp
 
-                        <div class="col">
-                            <div class="student-skill-card {{ $statusClass }} {{ $isClickable ? '' : 'is-locked' }}">
-                                <a href="#"
-                                    wire:click.prevent="attempt('{{ $activity }}', '{{ $status }}')"
-                                    class="student-skill-card-link {{ $isClickable ? '' : 'pe-none' }}">
-                                    <div class="student-skill-card-image">
-                                        <img src="{{ asset('includes/images/' . $activity . '.jpg') }}"
-                                            alt="{{ $activityLabels[$activity] ?? ucfirst(str_replace('_', ' ', $activity)) }}">
-                                        <div class="student-skill-card-overlay"></div>
-                                        @if ($status === 'attempted')
-                                            <span class="student-skill-check"><i class="fa-solid fa-check"></i></span>
-                                        @endif
-                                    </div>
-                                    <div class="student-skill-card-content">
-                                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                                            <div>
-                                                <h5 class="student-skill-title mb-1">
-                                                    {{ $activityLabels[$activity] ?? ucfirst(str_replace('_', ' ', $activity)) }}
-                                                </h5>
-                                                <p class="student-skill-arabic mb-0">
-                                                    {{ $activityTranslations[$activity] ?? '' }}
-                                                </p>
-                                            </div>
-                                            <span class="student-skill-status-pill status-{{ $status }}">
-                                                {{ ucfirst($status) }}
-                                            </span>
-                                        </div>
+                        <div class="ast-skill {{ $statusClass }} {{ $isClickable ? '' : 'is-locked' }}"
+                            style="--skill: {{ $art['colour'] }}; --skill-deep: {{ $art['deep'] }}; --art-ratio: {{ $art['w'] }} / {{ $art['h'] }};">
+                            <a href="#" wire:click.prevent="attempt('{{ $activity }}', '{{ $status }}')"
+                                class="ast-skill__link {{ $isClickable ? '' : 'pe-none' }}"
+                                @if (!$isClickable) tabindex="-1" aria-disabled="true" @endif
+                                aria-label="{{ $english }} — {{ $statusLabel }}">
 
-                                        @if ($status === 'attempted' && $hasMissingAnswers)
-                                            <p class="student-skill-warning mb-2">
-                                                <i class="fa-solid fa-triangle-exclamation"></i>
-                                                Some questions were left unanswered.
-                                            </p>
-                                        @endif
+                                <div class="ast-skill__art {{ $art['art'] ? '' : 'ast-skill__art--plain' }}">
+                                    @if ($art['art'])
+                                        <img src="{{ versioned_asset('includes/images/skills/' . $art['art']) }}"
+                                            alt="" width="{{ $art['w'] }}" height="{{ $art['h'] }}"
+                                            loading="lazy" decoding="async">
+                                    @else
+                                        <i class="fa-solid {{ $art['icon'] }}" aria-hidden="true"></i>
+                                    @endif
 
-                                        <div class="student-skill-action">
-                                            @if ($isClickable)
-                                                <span>Start Exam <i class="fa-solid fa-arrow-right ms-1"></i></span>
-                                            @elseif ($status === 'attempted')
-                                                <span>Completed</span>
-                                            @else
-                                                <span>Not available</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div class="student-skill-progress">
-                                        <div class="student-skill-progress-bar status-{{ $status }}"></div>
-                                    </div>
-                                </a>
-                            </div>
+                                    {{-- The colour sweeping in from the top, and the body curving up
+                                         into the picture: between them they make the shape. --}}
+                                    <span class="ast-skill__band" aria-hidden="true">
+                                        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                                            <defs>
+                                                <linearGradient id="sweep-{{ $activity }}" x1="0" y1="1" x2="1" y2="0">
+                                                    <stop offset="0" stop-color="var(--skill)" stop-opacity=".15" />
+                                                    <stop offset=".55" stop-color="var(--skill)" stop-opacity=".9" />
+                                                    <stop offset="1" stop-color="var(--skill-deep)" />
+                                                </linearGradient>
+                                            </defs>
+                                            <path fill="var(--skill)" opacity=".3"
+                                                d="M100 0H70C80 26 80 56 66 80 60 90 52 96 44 100H100Z" />
+                                            <path fill="url(#sweep-{{ $activity }})"
+                                                d="M100 0H79C88 26 87 56 75 79 69 89 62 95 55 100H100Z" />
+                                        </svg>
+                                    </span>
+
+                                    <span class="ast-skill__wave" aria-hidden="true">
+                                        <svg viewBox="0 0 400 56" preserveAspectRatio="none">
+                                            <path fill="var(--skill-deep)"
+                                                d="M0 38C120 52 250 30 400 2V12C250 38 120 56 0 44Z" />
+                                            <path fill="#fff" d="M0 56V44C120 56 250 38 400 12V56Z" />
+                                        </svg>
+                                    </span>
+
+                                    <span class="ast-skill__badge" aria-hidden="true">
+                                        <i class="fa-solid {{ $art['icon'] }}"></i>
+                                    </span>
+
+                                    {{-- Paired with a word and an icon, never colour alone. --}}
+                                    <span class="ast-skill__status">
+                                        <i class="fa-solid {{ $statusIcon }}" aria-hidden="true"></i>
+                                        {{ $statusLabel }}
+                                    </span>
+
+                                    @if ($status === 'attempted')
+                                        <span class="ast-skill__done" aria-hidden="true">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="ast-skill__body">
+                                    <h3 class="ast-skill__ar" lang="ar" dir="rtl">{{ $arabic }}</h3>
+                                    <p class="ast-skill__en">{{ $english }}</p>
+                                    <span class="ast-skill__rule" aria-hidden="true"></span>
+
+                                    @if ($status === 'attempted' && $hasMissingAnswers)
+                                        <p class="ast-skill__note">
+                                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                                            Some questions were left unanswered.
+                                        </p>
+                                    @endif
+
+                                    <span class="ast-skill__cta">
+                                        @if ($isClickable)
+                                            <span class="ast-skill__cta-ar" lang="ar" dir="rtl">ابدأ الاختبار</span>
+                                            <span class="ast-skill__cta-en">Start Exam &rarr;</span>
+                                        @elseif ($status === 'attempted')
+                                            <span class="ast-skill__cta-ar" lang="ar" dir="rtl">تم الإنجاز</span>
+                                            <span class="ast-skill__cta-en">Completed</span>
+                                        @else
+                                            <span class="ast-skill__cta-ar" lang="ar" dir="rtl">غير متاح</span>
+                                            <span class="ast-skill__cta-en">Not available</span>
+                                        @endif
+                                    </span>
+                                </div>
+                            </a>
                         </div>
                     @endforeach
                 </div>

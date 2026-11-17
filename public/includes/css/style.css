@@ -1645,3 +1645,355 @@ audio::-webkit-media-controls-panel {
   border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
+
+/* ==========================================================================
+   Skill cards on the student exam list.
+
+   A separate set of classes from .student-skill-card, which the admin exam
+   preview still uses: changing those would redesign that page by accident.
+
+   Each card carries its own --skill colour and everything tints from it, so a
+   skill is one line of blade rather than five rules. The colours are not the
+   obvious ones: white on the natural green (#558b2f) and teal (#0097a7) of the
+   reference measures 4.10:1 and 3.51:1, under the 4.5:1 a button needs, so
+   each is the nearest shade that passes.
+   ========================================================================== */
+
+.ast-skills {
+  display: grid;
+  /* Six tracks so cards can span unevenly. Three across by default, which is
+     what auto-fit got wrong: on a wide screen it gave four and stranded the
+     fifth. */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1.75rem;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.ast-skills > .ast-skill {
+  grid-column: span 2;
+}
+
+/* Five skills read as three then two, as in the design, and the two below are
+   wider. That is not decoration: their photographs are wider as well (528x210
+   against 336x222), so a wider card is the one that can show them whole. */
+.ast-skills--5 > .ast-skill:nth-child(n + 4) {
+  grid-column: span 3;
+}
+
+/* Four sits as two and two rather than three and a stray one. */
+.ast-skills--4 > .ast-skill {
+  grid-column: span 3;
+}
+
+.ast-skills--2 > .ast-skill {
+  grid-column: span 3;
+}
+
+.ast-skills--1 > .ast-skill {
+  grid-column: span 6;
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+@media (max-width: 991.98px) {
+  .ast-skills,
+  .ast-skills--4,
+  .ast-skills--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ast-skills > .ast-skill,
+  .ast-skills--5 > .ast-skill:nth-child(n + 4),
+  .ast-skills--4 > .ast-skill,
+  .ast-skills--2 > .ast-skill,
+  .ast-skills--1 > .ast-skill {
+    grid-column: span 1;
+  }
+}
+
+.ast-skill {
+  --skill: #0b63ce;
+  --skill-ink: #0a0847;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(10, 8, 71, 0.1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  height: 100%;
+}
+
+.ast-skill:hover,
+.ast-skill:focus-within {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(10, 8, 71, 0.16);
+}
+
+/* The whole card is the control, so the hit area is the card, not the words. */
+.ast-skill__link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ast-skill__link:focus-visible {
+  outline: 3px solid var(--skill);
+  outline-offset: 3px;
+}
+
+/* ---- the picture, and the colour sweeping over it --------------------- */
+
+.ast-skill__art {
+  position: relative;
+  /* The photograph's own proportions, passed in per card. A fixed height meant
+     cover() cut the top and bottom off every portrait-shaped photo, which is
+     what made the pictures look zoomed in. */
+  aspect-ratio: var(--art-ratio, 3 / 2);
+  background: linear-gradient(135deg, var(--skill), rgba(10, 8, 71, 0.85));
+  overflow: hidden;
+}
+
+.ast-skill__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Shown when a skill has no photograph of its own: the colour and the badge
+   carry the card instead, which reads as a choice rather than a gap. */
+.ast-skill__art--plain {
+  display: grid;
+  place-items: center;
+}
+
+.ast-skill__art--plain i {
+  font-size: 3.4rem;
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.ast-skill__band {
+  position: absolute;
+  inset: 0 0 auto auto;
+  width: 56%;
+  height: 100%;
+  color: var(--skill);
+  pointer-events: none;
+}
+
+.ast-skill__band svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The body curves up into the picture, which is what gives the reference its
+   shape. White, so it continues the card rather than sitting on top of it. */
+.ast-skill__wave {
+  position: absolute;
+  inset: auto 0 -1px 0;
+  pointer-events: none;
+}
+
+.ast-skill__wave svg {
+  width: 100%;
+  height: 62px;
+  display: block;
+}
+
+.ast-skill__badge {
+  position: absolute;
+  top: 1rem;
+  inset-inline-end: 1.1rem;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--skill);
+  color: #fff;
+  font-size: 1.5rem;
+  box-shadow: 0 6px 18px rgba(10, 8, 71, 0.28);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+}
+
+/* ---- status, stated in words and an icon, never colour alone ---------- */
+
+.ast-skill__status {
+  position: absolute;
+  top: 1rem;
+  inset-inline-start: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--skill-ink);
+  box-shadow: 0 2px 8px rgba(10, 8, 71, 0.18);
+}
+
+.ast-skill__status i {
+  font-size: 0.7rem;
+}
+
+.ast-skill.is-attempted .ast-skill__status {
+  background: #0f5132;
+  color: #fff;
+}
+
+.ast-skill.is-expired .ast-skill__status {
+  background: #842029;
+  color: #fff;
+}
+
+/* ---- titles ----------------------------------------------------------- */
+
+.ast-skill__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.35rem 1.25rem 1.4rem;
+}
+
+.ast-skill__ar {
+  font-family: "Noto Naskh Arabic", "Vazirmatn", serif;
+  font-weight: 700;
+  font-size: clamp(1.35rem, 1.1rem + 1vw, 1.7rem);
+  line-height: 1.45;
+  color: var(--skill-ink);
+  margin: 0;
+}
+
+.ast-skill__en {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #5b6079;
+  margin: 0.15rem 0 0;
+}
+
+.ast-skill__rule {
+  width: 72px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--skill);
+  opacity: 0.35;
+  margin: 0.85rem 0 1rem;
+}
+
+.ast-skill__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #842029;
+  background: #f8d7da;
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  margin: 0 0 0.9rem;
+  text-align: start;
+}
+
+/* ---- the button ------------------------------------------------------- */
+
+.ast-skill__cta {
+  margin-top: auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 190px;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  background: var(--skill);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(10, 8, 71, 0.18);
+  transition: filter 0.2s ease;
+}
+
+.ast-skill__link:hover .ast-skill__cta {
+  filter: brightness(1.08);
+}
+
+.ast-skill__cta-ar {
+  font-family: "Noto Naskh Arabic", "Vazirmatn", serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.ast-skill__cta-en {
+  font-size: 0.76rem;
+  font-weight: 500;
+  opacity: 0.9;
+  letter-spacing: 0.03em;
+}
+
+/* ---- a skill that is no longer open to the student -------------------- */
+
+.ast-skill.is-locked .ast-skill__art img {
+  filter: grayscale(0.55);
+}
+
+.ast-skill.is-locked .ast-skill__cta {
+  background: #6c757d;
+  box-shadow: none;
+}
+
+.ast-skill.is-locked:hover {
+  transform: none;
+  box-shadow: 0 10px 30px rgba(10, 8, 71, 0.1);
+}
+
+.ast-skill__done {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 81, 50, 0.42);
+  color: #fff;
+  font-size: 2.6rem;
+}
+
+@media (max-width: 575.98px) {
+  .ast-skills {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  /* One card per row here, so the wide photographs would otherwise come out as
+     thin strips: 126px of picture under 340px of card. A floor lets cover()
+     take a little off their sides instead, which reads better than a letterbox. */
+  .ast-skill__art {
+    min-height: 168px;
+  }
+
+  .ast-skill__badge {
+    width: 54px;
+    height: 54px;
+    font-size: 1.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ast-skill,
+  .ast-skill__cta {
+    transition: none;
+  }
+
+  .ast-skill:hover,
+  .ast-skill:focus-within {
+    transform: none;
+  }
+}
