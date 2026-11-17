@@ -582,124 +582,21 @@ class AllStudents extends Component
     }
 
     /**
-     * Rough width of a string in Arial at a given size. There are no font
-     * metrics available here, so the advance is approximated per character
-     * class: capitals and digits are wide, lowercase middling, spaces and
-     * punctuation narrow. Deliberately a shade generous, so a line judged to
-     * fit really does.
-     */
-    protected function estimateTextWidth(string $text, float $fontSize, bool $bold = false): float
-    {
-        $units = 0.0;
-
-        foreach (preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $char) {
-            if (preg_match('/[A-Z0-9@#&]/u', $char)) {
-                $units += 0.72;
-            } elseif (preg_match('/[a-z]/u', $char)) {
-                $units += 0.55;
-            } elseif (preg_match('/[\s.,:;|!()\[\]\x27`-]/u', $char)) {
-                $units += 0.30;
-            } else {
-                $units += 0.62;
-            }
-        }
-
-        // bold Arial runs about 6% wider than regular
-        return $units * $fontSize * ($bold ? 1.06 : 1.0);
-    }
-
-    /**
-     * Break a line in two at a space, with both halves inside the width.
-     * Returns null when no break achieves that.
+     * Generate an SVG that contains the QR code and the label lines, laid out as on the AIBT cards.
      *
-     * @return list<string>|null
-     */
-    protected function wrapLabelLine(string $text, float $maxWidth, float $fontSize, bool $bold = false): ?array
-    {
-        $words = preg_split('/\s+/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-        if (count($words) < 2) {
-            return null;
-        }
-
-        $best = null;
-        $bestDifference = null;
-
-        for ($split = 1; $split < count($words); $split++) {
-            $first = implode(' ', array_slice($words, 0, $split));
-            $second = implode(' ', array_slice($words, $split));
-
-            $firstWidth = $this->estimateTextWidth($first, $fontSize, $bold);
-            $secondWidth = $this->estimateTextWidth($second, $fontSize, $bold);
-
-            if ($firstWidth > $maxWidth || $secondWidth > $maxWidth) {
-                continue;
-            }
-
-            // the most even break reads best on a printed card
-            $difference = abs($firstWidth - $secondWidth);
-
-            if ($bestDifference === null || $difference < $bestDifference) {
-                $best = [$first, $second];
-                $bestDifference = $difference;
-            }
-        }
-
-        return $best;
-    }
-
-    /** Last resort: shorten until it fits, marking that it was cut. */
-    protected function shortenToWidth(string $text, float $maxWidth, float $fontSize, bool $bold = false): string
-    {
-        $ellipsis = "\u{2026}";
-
-        while ($text !== '' && $this->estimateTextWidth($text.$ellipsis, $fontSize, $bold) > $maxWidth) {
-            $text = mb_substr($text, 0, mb_strlen($text) - 1);
-        }
-
-        return rtrim($text).$ellipsis;
-    }
-
-    /**
-     * Fit one label line to the card.
-     *
-     * Every line used to be drawn at a fixed 14px centred on a 300px card, so a
-     * long name simply ran off both edges and printed cut in half; 8.7% of
-     * students have a name too long for that. The line is shrunk first, then
-     * broken over two lines, and only shortened when a name will not fit even
-     * then.
-     *
-     * @return list<array{text: string, size: float, bold: bool}>
-     */
-    protected function fitLabelLine(string $text, float $maxWidth, float $maxSize = 14.0, float $minSize = 9.0, bool $bold = false): array
-    {
-        // one line, as large as fits, down to a size still comfortable in print
-        for ($size = $maxSize; $size >= $minSize + 2; $size -= 0.5) {
-            if ($this->estimateTextWidth($text, $size, $bold) <= $maxWidth) {
-                return [['text' => $text, 'size' => $size, 'bold' => $bold]];
-            }
-        }
-
-        // two lines, broken at a space
-        for ($size = $maxSize - 1; $size >= $minSize; $size -= 0.5) {
-            if ($wrapped = $this->wrapLabelLine($text, $maxWidth, $size, $bold)) {
-                return array_map(fn ($part) => ['text' => $part, 'size' => $size, 'bold' => $bold], $wrapped);
-            }
-        }
-
-        return [['text' => $this->shortenToWidth($text, $maxWidth, $minSize, $bold), 'size' => $minSize, 'bold' => $bold]];
-    }
-
-    /**
-     * Generate an SVG that contains QR code + label lines.
+     * The QR uses error correction M: the login link is long, and at H (as before) the code was 65 squares across,
+     * small enough to be hard to see and scan on a printed card. M draws it 49 across, each square about a quarter
+     * larger at the same size, and still recovers from 15% damage; nothing is printed over the code, so H's extra
+     * redundancy bought nothing. The quiet margin is two squares instead of one, so cards printed side by side
+     * still scan.
      */
     protected function generateLabeledQrSvg(string $url, array $lines): string
     {
         $qrSize = 300;
         $qrSvg = QrCode::format('svg')
             ->size($qrSize)
-            ->errorCorrection('H')
-            ->margin(1)
+            ->errorCorrection('M')
+            ->margin(2)
             ->generate($url);
 
         // Strip XML header if present (so we can safely wrap in our own <svg>).
@@ -718,9 +615,8 @@ class AllStudents extends Component
             $viewBox = trim((string) $vb[1]);
         }
 
-        $fontSize = 14;
-        $lineGap = 6;
         $padding = 12;
+        $maxWidth = $qrSize - ($padding * 2);
 
         $cleanLines = [];
         foreach ($lines as $line) {
@@ -730,26 +626,27 @@ class AllStudents extends Component
             }
         }
 
-        // Fit each line to the card before measuring, so the block is as tall as
-        // the text actually needs rather than assuming one line of one size.
-        $maxTextWidth = $qrSize - (2 * $padding);
+        // The first line is the student's name: bold and large, wrapped onto a second line rather than shrunk or
+        // cut off when it is long. A third line, at a slightly smaller size, only for the very longest names.
+        $rows = [];
+        foreach ($cleanLines as $i => $line) {
+            $bold = $i === 0;
+            [$size, $wrapped] = $bold
+                ? $this->fitLabelText($line, $maxWidth, true, [[16, 1], [15, 2], [14, 2], [13, 3], [12, 3]])
+                : $this->fitLabelText($line, $maxWidth, false, [[14, 1], [13, 1], [12, 2]]);
 
-        $fittedLines = [];
-        foreach ($cleanLines as $index => $line) {
-            // the first line is the student's name, which the card prints in bold
-            $bold = $index === 0;
-
-            foreach ($this->fitLabelLine($line, $maxTextWidth, $fontSize, 9.0, $bold) as $fitted) {
-                $fittedLines[] = $fitted;
+            foreach ($wrapped as $text) {
+                $rows[] = ['text' => $text, 'size' => $size, 'bold' => $bold];
             }
         }
 
-        $textHeight = 0.0;
-        foreach ($fittedLines as $index => $fitted) {
-            $textHeight += $fitted['size'] + ($index > 0 ? $lineGap : 0);
-        }
+        $textHeight = array_sum(array_map(fn ($row) => $this->labelLineHeight($row['size']), $rows));
 
-        $totalH = (int) ceil($qrSize + ($textHeight > 0 ? ($padding + $textHeight + $padding) : 0));
+        // Reserve room for a three-line name so every card in a printed sheet has the same height, as on AIBT.
+        $standardHeight = (3 * $this->labelLineHeight(13)) + ((count($cleanLines) - 1) * $this->labelLineHeight(14));
+        $textHeight = count($rows) ? max($textHeight, $standardHeight) : 0;
+
+        $totalH = (int) ceil($qrSize + ($textHeight ? ($padding + $textHeight + $padding) : 0));
 
         $out = [];
         $out[] = '<svg xmlns="http://www.w3.org/2000/svg" width="'.$qrSize.'" height="'.$totalH.'" viewBox="0 0 '.$qrSize.' '.$totalH.'">';
@@ -760,26 +657,117 @@ class AllStudents extends Component
         $out[] = $inner;
         $out[] = '</svg>';
 
-        if ($fittedLines) {
-            $y = $qrSize + $padding;
-            $x = $qrSize / 2;
+        $top = $qrSize + $padding;
+        $x = $qrSize / 2;
 
-            foreach ($fittedLines as $index => $fitted) {
-                $y += $fitted['size'] + ($index > 0 ? $lineGap : 0);
+        foreach ($rows as $row) {
+            $lineHeight = $this->labelLineHeight($row['size']);
+            $baseline = round($top + ($lineHeight + $row['size'] * 0.7) / 2, 1);
 
-                $out[] = '<text x="'.$x.'" y="'.$y.'" font-family="Arial, sans-serif" font-size="'
-                    .rtrim(rtrim(number_format($fitted['size'], 1, '.', ''), '0'), '.')
-                    .'" text-anchor="middle" fill="#000000"'
-                    .(($fitted['bold'] ?? false) ? ' font-weight="bold"' : '').'>'
-                    .htmlspecialchars($fitted['text'], ENT_QUOTES | ENT_XML1)
-                    .'</text>';
-            }
+            // Last resort for a line that still does not fit: squeeze it to the card width instead of clipping it.
+            $squeeze = $this->labelTextWidth($row['text'], $row['size'], $row['bold']) > $maxWidth
+                ? ' textLength="'.$maxWidth.'" lengthAdjust="spacingAndGlyphs"'
+                : '';
+
+            $out[] = '<text x="'.$x.'" y="'.$baseline.'" font-family="Arial, sans-serif" font-size="'.$row['size'].'"'
+                .($row['bold'] ? ' font-weight="bold"' : '').' text-anchor="middle" fill="#000000"'.$squeeze.'>'
+                .htmlspecialchars($row['text'], ENT_QUOTES | ENT_XML1)
+                .'</text>';
+
+            $top += $lineHeight;
         }
 
         $out[] = '</svg>';
 
         return implode("\n", $out);
     }
+
+    /**
+     * Pick the largest font size whose word-wrapped text fits within the allowed number of lines.
+     *
+     * @param  array<int, array{0: int, 1: int}>  $attempts  [font size, max lines] pairs, tried in order
+     * @return array{0: int, 1: array<int, string>}
+     */
+    protected function fitLabelText(string $text, float $maxWidth, bool $bold, array $attempts): array
+    {
+        $wrapped = [];
+
+        foreach ($attempts as [$size, $maxLines]) {
+            $wrapped = $this->wrapLabelText($text, $size, $maxWidth, $bold);
+
+            if (count($wrapped) <= $maxLines) {
+                return [$size, $wrapped];
+            }
+        }
+
+        // Nothing fit: keep the last attempt's line count and put the overflow on the final line, which gets squeezed.
+        [$size, $maxLines] = end($attempts);
+        $kept = array_slice($wrapped, 0, $maxLines - 1);
+        $kept[] = implode(' ', array_slice($wrapped, $maxLines - 1));
+
+        return [$size, $kept];
+    }
+
+    /**
+     * Break text between words so each line fits $maxWidth.
+     *
+     * @return array<int, string>
+     */
+    protected function wrapLabelText(string $text, int $size, float $maxWidth, bool $bold): array
+    {
+        $lines = [];
+        $current = '';
+
+        foreach (preg_split('/\s+/u', trim($text)) ?: [] as $word) {
+            $candidate = $current === '' ? $word : $current.' '.$word;
+
+            if ($current !== '' && $this->labelTextWidth($candidate, $size, $bold) > $maxWidth) {
+                $lines[] = $current;
+                $current = $word;
+            } else {
+                $current = $candidate;
+            }
+        }
+
+        if ($current !== '') {
+            $lines[] = $current;
+        }
+
+        return $lines;
+    }
+
+    protected function labelLineHeight(int $size): float
+    {
+        return round($size * 1.35, 1);
+    }
+
+    /**
+     * Estimate rendered width from Arial's character widths, since SVG text cannot be measured server-side.
+     */
+    protected function labelTextWidth(string $text, int $size, bool $bold): float
+    {
+        $units = 0;
+        foreach (mb_str_split($text) as $char) {
+            $units += self::ARIAL_WIDTHS[$char] ?? (ctype_digit($char) ? 556 : 600);
+        }
+
+        // Bold Arial runs about 10% wider; the extra 5% is a safety margin for font substitution.
+        return $units / 1000 * $size * ($bold ? 1.1 : 1.0) * 1.05;
+    }
+
+    /**
+     * Arial advance widths in 1/1000 em.
+     */
+    private const ARIAL_WIDTHS = [
+        ' ' => 278, '.' => 278, ',' => 278, ':' => 278, ';' => 278, '!' => 278, '|' => 260, "'" => 191,
+        '-' => 333, '(' => 333, ')' => 333, '/' => 278, '&' => 667, '_' => 556, '@' => 1015,
+        'A' => 667, 'B' => 667, 'C' => 722, 'D' => 722, 'E' => 667, 'F' => 611, 'G' => 778, 'H' => 722, 'I' => 278,
+        'J' => 500, 'K' => 667, 'L' => 556, 'M' => 833, 'N' => 722, 'O' => 778, 'P' => 667, 'Q' => 778, 'R' => 722,
+        'S' => 667, 'T' => 611, 'U' => 722, 'V' => 667, 'W' => 944, 'X' => 667, 'Y' => 667, 'Z' => 611,
+        'a' => 556, 'b' => 556, 'c' => 500, 'd' => 556, 'e' => 556, 'f' => 278, 'g' => 556, 'h' => 556, 'i' => 222,
+        'j' => 222, 'k' => 500, 'l' => 222, 'm' => 833, 'n' => 556, 'o' => 556, 'p' => 556, 'q' => 556, 'r' => 333,
+        's' => 500, 't' => 278, 'u' => 556, 'v' => 500, 'w' => 722, 'x' => 500, 'y' => 500, 'z' => 500,
+    ];
 
     public function exportExcel()
     {

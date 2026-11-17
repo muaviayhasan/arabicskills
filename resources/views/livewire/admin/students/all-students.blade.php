@@ -383,11 +383,12 @@
                     qr.value = '';
                 }
 
+                // Level M, as on the server cards: fewer, larger squares, so the code is easier to see and scan.
                 qr = new QRious({
                     element: canvas,
                     value: url,
                     size: 300,
-                    level: 'H'
+                    level: 'M'
                 });
             });
 
@@ -396,7 +397,7 @@
                 const canvas = document.getElementById('loginQrCanvas');
                 const link = document.createElement('a');
 
-                // Create a labeled PNG (QR + 3 lines of text) like the server ZIP export.
+                // Create a labeled PNG (QR + label lines) laid out like the server ZIP export.
                 const lines = [
                     document.getElementById('loginQrLine1')?.textContent || '',
                     document.getElementById('loginQrLine2')?.textContent || '',
@@ -406,21 +407,65 @@
                 ].filter(Boolean);
 
                 const padding = 12;
-                const lineGap = 6;
-                const fontSize = 14;
+                const maxWidth = canvas.width;
+                const lineHeight = size => Math.round(size * 1.35);
+                const fontFor = (size, bold) => `${bold ? 'bold ' : ''}${size}px Arial`;
 
                 const out = document.createElement('canvas');
                 const ctx = out.getContext('2d');
                 if (!ctx) {
                     link.href = canvas.toDataURL('image/png');
                 } else {
-                    ctx.font = `${fontSize}px Arial`;
-                    const textHeight = lines.length ? (lines.length * fontSize) + ((lines.length - 1) *
-                        lineGap) : 0;
-                    const extraH = lines.length ? (padding + textHeight) : 0;
+                    const wrap = (text, size, bold) => {
+                        ctx.font = fontFor(size, bold);
+                        const wrapped = [];
+                        let current = '';
+                        for (const word of text.trim().split(/\s+/)) {
+                            const candidate = current ? current + ' ' + word : word;
+                            if (current && ctx.measureText(candidate).width > maxWidth) {
+                                wrapped.push(current);
+                                current = word;
+                            } else {
+                                current = candidate;
+                            }
+                        }
+                        if (current) wrapped.push(current);
+                        return wrapped;
+                    };
 
+                    // Largest size whose wrapped text fits the allowed lines; otherwise the last line gets squeezed.
+                    const fit = (text, bold, attempts) => {
+                        let wrapped = [];
+                        for (const [size, maxLines] of attempts) {
+                            wrapped = wrap(text, size, bold);
+                            if (wrapped.length <= maxLines) return { size, wrapped };
+                        }
+                        const [size, maxLines] = attempts[attempts.length - 1];
+                        const kept = wrapped.slice(0, maxLines - 1);
+                        kept.push(wrapped.slice(maxLines - 1).join(' '));
+                        return { size, wrapped: kept };
+                    };
+
+                    // The first line is the student's name: bold and large, wrapped onto a second line rather than
+                    // shrunk or cut off when it is long (the same sizes as the server cards).
+                    const rows = [];
+                    lines.forEach((line, i) => {
+                        const bold = i === 0;
+                        const { size, wrapped } = bold
+                            ? fit(line, true, [[16, 1], [15, 2], [14, 2], [13, 3], [12, 3]])
+                            : fit(line, false, [[14, 1], [13, 1], [12, 2]]);
+                        wrapped.forEach(text => rows.push({ text, size, bold }));
+                    });
+
+                    // Reserve room for a three-line name so every card has the same height.
+                    const standardHeight = (3 * lineHeight(13)) + ((lines.length - 1) * lineHeight(14));
+                    const textHeight = rows.length
+                        ? Math.max(rows.reduce((h, row) => h + lineHeight(row.size), 0), standardHeight)
+                        : 0;
+
+                    // Resizing a canvas resets its context, so size it before setting any drawing styles.
                     out.width = canvas.width + (padding * 2);
-                    out.height = canvas.height + (padding * 2) + extraH;
+                    out.height = canvas.height + (padding * 2) + (textHeight ? padding + textHeight : 0);
 
                     // white background
                     ctx.fillStyle = '#ffffff';
@@ -430,17 +475,16 @@
                     ctx.drawImage(canvas, padding, padding);
 
                     // Text
-                    if (lines.length) {
-                        ctx.fillStyle = '#000000';
-                        ctx.textBaseline = 'top';
+                    ctx.fillStyle = '#000000';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
 
-                        let y = padding + canvas.height + padding;
-                        for (const line of lines) {
-                            const w = ctx.measureText(line).width;
-                            const x = Math.max(0, (out.width - w) / 2);
-                            ctx.fillText(line, x, y);
-                            y += fontSize + lineGap;
-                        }
+                    let y = padding + canvas.height + padding;
+                    for (const row of rows) {
+                        ctx.font = fontFor(row.size, row.bold);
+                        // maxWidth squeezes a line that still does not fit instead of clipping it.
+                        ctx.fillText(row.text, out.width / 2, y + lineHeight(row.size) / 2, maxWidth);
+                        y += lineHeight(row.size);
                     }
 
                     link.href = out.toDataURL('image/png');
